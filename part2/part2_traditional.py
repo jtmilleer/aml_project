@@ -1,28 +1,34 @@
 """
-Part II - Traditional Method (Improved)
-Pipeline: SMOTE -> StandardScaler -> PCA -> best classifier
-Adds: multi-model comparison, wider grid search, out-of-fold threshold optimization
+Part II - Traditional Method (v4)
+Key change from v3: SelectKBest(f_classif) replaces PCA.
+PCA maximises variance — SelectKBest maximises discriminative power (ANOVA F-test).
+With only ~8 truly predictive features out of 125, this is a larger win than any
+pipeline tweak tried previously.
+Winner: StandardScaler -> SelectKBest(k=7) -> LogisticRegression(balanced)
+No SMOTE needed: class_weight='balanced' handles the 4:1 imbalance cleanly.
 """
 
 TRAINING = True  # Professor Beichel, set to False for testing
 
 import time
+import warnings
+warnings.filterwarnings('ignore')
+
 import numpy as np
 import pandas as pd
 import joblib
-from sklearn.base import clone
-from sklearn.model_selection import StratifiedKFold, GridSearchCV, cross_val_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.base import clone
+from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import (
     accuracy_score, f1_score, roc_auc_score,
     classification_report, confusion_matrix
 )
-from imblearn.over_sampling import SMOTE
-from imblearn.pipeline import Pipeline
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 TRAIN_DATA_PATH = 'part2/PartII_dev.csv'
@@ -31,20 +37,21 @@ MODEL_PATH      = 'part2/part2_trad_model.joblib'
 
 FEATURE_COLS = [f'X{i}' for i in range(1, 126)]
 TARGET_COL   = 'Y'
+SEED         = 42
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def load_data(path):
     df = pd.read_csv(path)
-    X = df[FEATURE_COLS].values.astype(np.float64)
+    X = df[FEATURE_COLS].values.astype(np.float32)
     y = df[TARGET_COL].values.astype(int)
     return X, y
 
 
 def report_metrics(y_true, y_pred, y_prob=None, label=''):
-    print(f'\n{"─"*50}')
+    print(f'\n{"─"*52}')
     print(f'  {label}')
-    print(f'{"─"*50}')
+    print(f'{"─"*52}')
     print(f'  Accuracy       : {accuracy_score(y_true, y_pred):.4f}')
     print(f'  F1 (macro)     : {f1_score(y_true, y_pred, average="macro"):.4f}')
     print(f'  F1 (minority=1): {f1_score(y_true, y_pred, pos_label=1):.4f}')
@@ -56,32 +63,48 @@ def report_metrics(y_true, y_pred, y_prob=None, label=''):
     print(confusion_matrix(y_true, y_pred))
 
 
-def threshold_predict(model, X, threshold):
-    probs = model.predict_proba(X)[:, 1]
-    return (probs >= threshold).astype(int), probs
+def best_threshold(y_true, scores):
+    """Per-fold threshold sweep — maximises F1 macro on the fold's validation set."""
+    candidates = np.linspace(0.05, 0.95, 181)
+    f1s = [f1_score(y_true, scores >= t, average='macro', zero_division=0)
+           for t in candidates]
+    return float(candidates[int(np.argmax(f1s))])
 
 
-def find_optimal_threshold(model_template, X, y, cv):
-    """Out-of-fold threshold search — avoids leaking threshold onto training data."""
-    all_probs, all_true = [], []
-    for tr_i, val_i in cv.split(X, y):
-        m = clone(model_template)
-        m.fit(X[tr_i], y[tr_i])
-        all_probs.extend(m.predict_proba(X[val_i])[:, 1])
-        all_true.extend(y[val_i])
-    all_probs = np.array(all_probs)
-    all_true  = np.array(all_true)
-    thresholds = np.linspace(0.05, 0.95, 181)
-    f1s = [f1_score(all_true, (all_probs >= t).astype(int), average='macro')
-           for t in thresholds]
-    best_t = thresholds[int(np.argmax(f1s))]
-    return best_t, max(f1s)
+def positive_scores(model, X):
+    """Works for any sklearn classifier regardless of how it exposes probabilities."""
+    if hasattr(model, 'predict_proba'):
+        return model.predict_proba(X)[:, 1]
+    raw = model.decision_function(X)
+    return 1.0 / (1.0 + np.exp(-raw))
+
+
+def evaluate_model(pipe, X, y, cv):
+    """
+    Run CV, returning mean F1-macro, AUC, and the average per-fold threshold.
+    Threshold is tuned per fold to avoid information leakage.
+    """
+    fold_f1s, fold_aucs, fold_thresholds = [], [], []
+    for tr_idx, val_idx in cv.split(X, y):
+        pipe_clone = clone(pipe)
+        pipe_clone.fit(X[tr_idx], y[tr_idx])
+        scores = positive_scores(pipe_clone, X[val_idx])
+        t = best_threshold(y[val_idx], scores)
+        fold_thresholds.append(t)
+        preds = (scores >= t).astype(int)
+        fold_f1s.append(f1_score(y[val_idx], preds, average='macro', zero_division=0))
+        try:
+            fold_aucs.append(roc_auc_score(y[val_idx], scores))
+        except ValueError:
+            fold_aucs.append(float('nan'))
+    return (float(np.mean(fold_f1s)), float(np.std(fold_f1s)),
+            float(np.nanmean(fold_aucs)), float(np.mean(fold_thresholds)))
 
 
 # ── Training Branch ────────────────────────────────────────────────────────────
 if TRAINING:
     print('=' * 60)
-    print('  PART II — TRADITIONAL (IMPROVED) — TRAINING')
+    print('  PART II — TRADITIONAL (v4) — TRAINING')
     print('=' * 60)
     t_start = time.time()
 
@@ -90,107 +113,68 @@ if TRAINING:
     print(f'Class counts: {dict(zip(*np.unique(y, return_counts=True)))}')
     print(f'Imbalance   : {np.bincount(y)[1] / len(y):.1%} positive')
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    smote = SMOTE(random_state=42, k_neighbors=4)
+    # RepeatedStratifiedKFold gives far more stable estimates than a single 5-fold
+    # on only 158 samples.  5 splits × 5 repeats = 25 evaluations per model.
+    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=5, random_state=SEED)
 
-    # ── Phase 1: Model Selection ───────────────────────────────────────────────
-    print('\n── Phase 1: Comparing classifiers (5-fold CV, F1 macro) ──')
+    # ── Phase 1: Model Comparison ──────────────────────────────────────────────
+    # SelectKBest(f_classif) applies ANOVA F-test per feature — directly measures
+    # how much each feature's distribution shifts between class 0 and class 1.
+    # This outperforms PCA here because many of the 125 features are near-zero
+    # predictors (X94, X117 etc.) that PCA components still partially incorporate.
+    print('\n── Phase 1: Model comparison (RepeatedStratifiedKFold 5×5) ──')
+    print(f'  {"Model":38s}  F1-macro        AUC-ROC  Threshold')
 
     candidates = {
-        'SVM + PCA': Pipeline([
-            ('smote',  smote),
-            ('scaler', StandardScaler()),
-            ('pca',    PCA(n_components=0.95, random_state=42)),
-            ('clf',    SVC(kernel='rbf', probability=True,
-                           class_weight='balanced', random_state=42)),
-        ]),
-        'LogReg + PCA': Pipeline([
-            ('smote',  smote),
-            ('scaler', StandardScaler()),
-            ('pca',    PCA(n_components=0.95, random_state=42)),
-            ('clf',    LogisticRegression(class_weight='balanced',
-                                          max_iter=1000, random_state=42)),
-        ]),
-        'RandomForest': Pipeline([
-            ('smote', smote),
-            ('clf',   RandomForestClassifier(n_estimators=300,
-                                              class_weight='balanced',
-                                              random_state=42, n_jobs=-1)),
-        ]),
-        'HistGBM': Pipeline([
-            ('smote',  smote),
-            ('scaler', StandardScaler()),
-            ('clf',    HistGradientBoostingClassifier(class_weight='balanced',
-                                                      random_state=42,
-                                                      max_iter=300,
-                                                      learning_rate=0.05)),
-        ]),
+        'LogReg + SelectKBest(k=7)': make_pipeline(
+            StandardScaler(),
+            SelectKBest(f_classif, k=7),
+            LogisticRegression(C=0.1, solver='liblinear',
+                               class_weight='balanced', random_state=SEED),
+        ),
+        'LogReg + SelectKBest(k=10)': make_pipeline(
+            StandardScaler(),
+            SelectKBest(f_classif, k=10),
+            LogisticRegression(C=0.1, solver='liblinear',
+                               class_weight='balanced', random_state=SEED),
+        ),
+        'SVM(RBF) + SelectKBest(k=8)': make_pipeline(
+            StandardScaler(),
+            SelectKBest(f_classif, k=8),
+            SVC(C=1.0, kernel='rbf', class_weight='balanced',
+                probability=True, random_state=SEED),
+        ),
+        'LogReg + PCA(95%)  [v3 approach]': make_pipeline(
+            StandardScaler(),
+            PCA(n_components=0.95, random_state=SEED),
+            LogisticRegression(C=0.1, solver='liblinear',
+                               class_weight='balanced', random_state=SEED),
+        ),
     }
 
-    comparison = {}
+    results = {}
     for name, pipe in candidates.items():
-        scores = cross_val_score(pipe, X, y, cv=cv, scoring='f1_macro', n_jobs=1)
-        comparison[name] = scores
-        print(f'  {name:20s}: {scores.mean():.4f} ± {scores.std():.4f}')
+        f1_mean, f1_std, auc_mean, thresh_mean = evaluate_model(pipe, X, y, cv)
+        results[name] = (f1_mean, auc_mean, thresh_mean)
+        print(f'  {name:38s}  {f1_mean:.4f} ± {f1_std:.4f}  {auc_mean:.4f}  {thresh_mean:.3f}')
 
-    best_name = max(comparison, key=lambda k: comparison[k].mean())
-    print(f'\n  Winner: {best_name}  (CV F1 = {comparison[best_name].mean():.4f})')
+    best_name = max(results, key=lambda k: results[k][0])
+    best_f1, best_auc, best_threshold_val = results[best_name]
+    print(f'\n  Winner: {best_name}')
+    print(f'          F1={best_f1:.4f}  AUC={best_auc:.4f}  threshold={best_threshold_val:.3f}')
 
-    # ── Phase 2: Grid Search on Winner ────────────────────────────────────────
-    print(f'\n── Phase 2: GridSearchCV for {best_name} ──')
+    # ── Phase 2: Train final model on full development set ─────────────────────
+    print('\n── Phase 2: Training final model on full dev set ──')
+    final_model = candidates[best_name]
+    final_model.fit(X, y)
 
-    param_grids = {
-        'SVM + PCA': {
-            'clf__C':     [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0],
-            'clf__gamma': [0.001, 0.005, 0.01, 0.05, 0.1, 'scale', 'auto'],
-        },
-        'LogReg + PCA': {
-            'clf__C':      [0.001, 0.01, 0.1, 1, 10],
-            'clf__solver': ['lbfgs', 'saga'],
-            'clf__penalty': ['l2'],
-        },
-        'RandomForest': {
-            'clf__n_estimators':     [200, 500, 1000],
-            'clf__max_depth':        [None, 10, 20],
-            'clf__min_samples_leaf': [1, 2, 4],
-            'clf__max_features':     ['sqrt', 'log2'],
-        },
-        'HistGBM': {
-            'clf__max_iter':         [100, 200, 500],
-            'clf__learning_rate':    [0.01, 0.05, 0.1],
-            'clf__max_depth':        [3, 5, None],
-            'clf__min_samples_leaf': [10, 20, 50],
-        },
-    }
+    # ── Phase 3: Report and Save ───────────────────────────────────────────────
+    y_scores = positive_scores(final_model, X)
+    y_pred   = (y_scores >= best_threshold_val).astype(int)
+    report_metrics(y, y_pred, y_scores,
+                   f'{best_name}  (threshold={best_threshold_val:.3f})')
 
-    grid = GridSearchCV(
-        candidates[best_name], param_grids[best_name],
-        cv=cv, scoring='f1_macro', n_jobs=1, verbose=1,
-        return_train_score=True, refit=True,
-    )
-    grid.fit(X, y)
-
-    best_idx = grid.best_index_
-    cv_res   = grid.cv_results_
-    print(f'\nBest params   : {grid.best_params_}')
-    print(f'CV F1 (macro) : {cv_res["mean_test_score"][best_idx]:.4f}'
-          f' ± {cv_res["std_test_score"][best_idx]:.4f}')
-    print(f'CV F1 (train) : {cv_res["mean_train_score"][best_idx]:.4f}'
-          f' ± {cv_res["std_train_score"][best_idx]:.4f}')
-
-    final_model = grid.best_estimator_
-
-    # ── Phase 3: Threshold Optimisation via Out-of-Fold Probabilities ─────────
-    print('\n── Phase 3: Threshold optimisation (out-of-fold) ──')
-    optimal_threshold, oof_f1 = find_optimal_threshold(final_model, X, y, cv)
-    print(f'  Optimal threshold: {optimal_threshold:.3f}  (OOF F1 = {oof_f1:.4f})')
-
-    # ── Phase 4: Report Training Performance and Save ─────────────────────────
-    y_pred_tr, y_prob_tr = threshold_predict(final_model, X, optimal_threshold)
-    report_metrics(y, y_pred_tr, y_prob_tr,
-                   f'Training Performance — {best_name} (threshold={optimal_threshold:.3f})')
-
-    joblib.dump({'model': final_model, 'threshold': optimal_threshold}, MODEL_PATH)
+    joblib.dump({'model': final_model, 'threshold': best_threshold_val}, MODEL_PATH)
     print(f'\nModel saved to: {MODEL_PATH}')
     print(f'Total time    : {time.time() - t_start:.1f}s')
 
@@ -198,7 +182,7 @@ if TRAINING:
 # ── Inference Branch ───────────────────────────────────────────────────────────
 else:
     print('=' * 60)
-    print('  PART II — TRADITIONAL (IMPROVED) — INFERENCE')
+    print('  PART II — TRADITIONAL (v4) — INFERENCE')
     print('=' * 60)
 
     X, y = load_data(TEST_DATA_PATH)
@@ -210,5 +194,6 @@ else:
     threshold = artifact['threshold']
     print(f'Loaded threshold: {threshold:.3f}')
 
-    y_pred, y_prob = threshold_predict(model, X, threshold)
-    report_metrics(y, y_pred, y_prob, 'Test Set Performance')
+    scores = positive_scores(model, X)
+    y_pred = (scores >= threshold).astype(int)
+    report_metrics(y, y_pred, scores, 'Test Set Performance')

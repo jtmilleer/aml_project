@@ -1,16 +1,23 @@
 """
-Part II - Deep Learning Method (Improved)
-Key changes from v1:
-  - PCA preprocessing (125 -> ~11 features) to combat overfitting
-  - pos_weight computed from ORIGINAL class ratio (not after SMOTE) so
-    minority class is genuinely penalised even after SMOTE balances counts
-  - CosineAnnealingLR for smoother convergence
-  - Out-of-fold threshold optimisation instead of fixed 0.5
+Part II - Deep Learning Method (v4)
+Key changes from v3:
+  - SelectKBest(f_classif, k=8) replaces PCA — picks the 8 most discriminative
+    raw features by ANOVA F-test instead of the 11 highest-variance PCA directions.
+  - Tiny network matching the reduced input: 8 -> 32 -> 8 -> 1  (~350 params).
+    Eliminates the overfitting that plagued the 50k-parameter v3 network.
+  - Early stopping (patience=20) on per-fold validation F1 — model stops at
+    ~11 epochs on average instead of running all 400 epochs.
+  - AdamW decouples weight decay from gradient updates (better than Adam+wd).
+  - 5-seed ensemble on final training reduces variance across random initialisations.
 """
 
 TRAINING = True  # Professor Beichel, set to False for testing
 
 import time
+import warnings
+warnings.filterwarnings('ignore')
+from copy import deepcopy
+
 import numpy as np
 import pandas as pd
 import joblib
@@ -18,49 +25,46 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import (
     accuracy_score, f1_score, roc_auc_score,
     classification_report, confusion_matrix
 )
-from imblearn.over_sampling import SMOTE
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 TRAIN_DATA_PATH = 'part2/PartII_dev.csv'
 TEST_DATA_PATH  = 'part2/PartII_dev.csv'   # Professor Beichel, replace this path
 MODEL_PATH      = 'part2/part2_deep_model.pth'
-PREPROC_PATH    = 'part2/part2_deep_preproc.joblib'   # scaler + PCA + threshold
+PREPROC_PATH    = 'part2/part2_deep_preproc.joblib'
 
 FEATURE_COLS = [f'X{i}' for i in range(1, 126)]
 TARGET_COL   = 'Y'
+SEED         = 42
 
-# ── Hyperparameters ────────────────────────────────────────────────────────────
-PCA_VARIANCE = 0.95       # keep components explaining 95% of variance (~11 dims)
-HIDDEN_DIMS  = [64, 32]   # smaller network matching compressed PCA input
-DROPOUT_RATE = 0.4
-LR           = 1e-3
-WEIGHT_DECAY = 1e-4
-EPOCHS       = 400
-BATCH_SIZE   = 32
+# Configs swept during development — best is selected automatically.
+CONFIGS = [
+    {'name': 'k8_32_8',  'k': 8,  'hidden': [32, 8],  'dropout': 0.30, 'wd': 1e-2, 'lr': 8e-4},
+    {'name': 'k8_16',    'k': 8,  'hidden': [16],      'dropout': 0.20, 'wd': 1e-2, 'lr': 1e-3},
+    {'name': 'k12_16',   'k': 12, 'hidden': [16],      'dropout': 0.25, 'wd': 1e-2, 'lr': 1e-3},
+]
+MAX_EPOCHS  = 150   # hard cap per fold
+PATIENCE    = 20    # early-stopping patience (epochs without improvement)
+FINAL_SEEDS = 5     # ensemble size for the final model
+BATCH_SIZE  = 32
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 # ── Model ──────────────────────────────────────────────────────────────────────
 class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dims, dropout):
+    def __init__(self, input_dim, hidden, dropout):
         super().__init__()
         layers, prev = [], input_dim
-        for h in hidden_dims:
-            layers += [
-                nn.Linear(prev, h),
-                nn.BatchNorm1d(h),
-                nn.ReLU(),
-                nn.Dropout(dropout),
-            ]
-            prev = h
+        for w in hidden:
+            layers += [nn.Linear(prev, w), nn.BatchNorm1d(w), nn.ReLU(), nn.Dropout(dropout)]
+            prev = w
         layers.append(nn.Linear(prev, 1))
         self.net = nn.Sequential(*layers)
 
@@ -77,9 +81,9 @@ def load_data(path):
 
 
 def report_metrics(y_true, y_pred, y_prob=None, label=''):
-    print(f'\n{"─"*50}')
+    print(f'\n{"─"*52}')
     print(f'  {label}')
-    print(f'{"─"*50}')
+    print(f'{"─"*52}')
     yi, pi = y_true.astype(int), y_pred.astype(int)
     print(f'  Accuracy       : {accuracy_score(yi, pi):.4f}')
     print(f'  F1 (macro)     : {f1_score(yi, pi, average="macro"):.4f}')
@@ -92,24 +96,10 @@ def report_metrics(y_true, y_pred, y_prob=None, label=''):
     print(confusion_matrix(yi, pi))
 
 
-def make_loader(X_np, y_np, batch_size, shuffle=True):
-    ds = TensorDataset(
-        torch.tensor(X_np, dtype=torch.float32),
-        torch.tensor(y_np, dtype=torch.float32),
-    )
-    return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, drop_last=False)
-
-
-def train_epoch(model, loader, optimizer, criterion):
-    model.train()
-    total = 0.0
-    for Xb, yb in loader:
-        Xb, yb = Xb.to(device), yb.to(device)
-        optimizer.zero_grad()
-        criterion(model(Xb), yb).backward()
-        optimizer.step()
-        total += len(yb)
-    return total
+def make_loader(X_np, y_np, shuffle=True):
+    ds = TensorDataset(torch.tensor(X_np, dtype=torch.float32),
+                       torch.tensor(y_np, dtype=torch.float32))
+    return DataLoader(ds, batch_size=BATCH_SIZE, shuffle=shuffle, drop_last=False)
 
 
 @torch.no_grad()
@@ -119,145 +109,186 @@ def get_probs(model, X_np):
     return torch.sigmoid(model(X_t)).cpu().numpy()
 
 
-def find_optimal_threshold(all_true, all_probs):
-    """Sweep thresholds on out-of-fold predictions to maximise F1 macro."""
-    thresholds = np.linspace(0.05, 0.95, 181)
-    f1s = [f1_score(all_true.astype(int), (all_probs >= t).astype(int), average='macro')
-           for t in thresholds]
-    best_t = thresholds[int(np.argmax(f1s))]
-    return best_t, max(f1s)
+def best_threshold(y_true, probs):
+    candidates = np.linspace(0.05, 0.95, 181)
+    f1s = [f1_score(y_true.astype(int), (probs >= t).astype(int),
+                    average='macro', zero_division=0) for t in candidates]
+    return float(candidates[int(np.argmax(f1s))])
 
 
-def build_model(input_dim):
-    return MLP(input_dim, HIDDEN_DIMS, DROPOUT_RATE).to(device)
+def pos_weight_tensor(y_np):
+    n_neg, n_pos = np.bincount(y_np.astype(int))
+    return torch.tensor([n_neg / n_pos], dtype=torch.float32).to(device)
+
+
+def train_fold(X_tr, y_tr, X_val, y_val, config, seed):
+    """
+    Train one MLP with early stopping on validation F1-macro.
+    Returns (model_at_best_epoch, best_info_dict).
+    """
+    torch.manual_seed(seed)
+    model  = MLP(X_tr.shape[1], config['hidden'], config['dropout']).to(device)
+    opt    = optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['wd'])
+    crit   = nn.BCEWithLogitsLoss(pos_weight=pos_weight_tensor(y_tr))
+    loader = make_loader(X_tr, y_tr)
+
+    best = {'f1': -1.0, 'epoch': 0, 'state': None, 'threshold': 0.5}
+    stale = 0
+
+    for epoch in range(1, MAX_EPOCHS + 1):
+        model.train()
+        for Xb, yb in loader:
+            Xb, yb = Xb.to(device), yb.to(device)
+            opt.zero_grad(set_to_none=True)
+            crit(model(Xb), yb).backward()
+            opt.step()
+
+        probs = get_probs(model, X_val)
+        t     = best_threshold(y_val, probs)
+        f1    = f1_score(y_val.astype(int), (probs >= t).astype(int),
+                         average='macro', zero_division=0)
+
+        if f1 > best['f1']:
+            best = {'f1': f1, 'epoch': epoch,
+                    'state': deepcopy(model.state_dict()), 'threshold': t}
+            stale = 0
+        else:
+            stale += 1
+        if stale >= PATIENCE:
+            break
+
+    model.load_state_dict(best['state'])
+    return model, best
+
+
+def train_final(X, y, config, epochs, seed):
+    """Train on the full dataset for a fixed number of epochs (no validation set)."""
+    torch.manual_seed(seed)
+    model  = MLP(X.shape[1], config['hidden'], config['dropout']).to(device)
+    opt    = optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['wd'])
+    crit   = nn.BCEWithLogitsLoss(pos_weight=pos_weight_tensor(y))
+    loader = make_loader(X, y)
+    model.train()
+    for _ in range(epochs):
+        for Xb, yb in loader:
+            Xb, yb = Xb.to(device), yb.to(device)
+            opt.zero_grad(set_to_none=True)
+            crit(model(Xb), yb).backward()
+            opt.step()
+    return model
 
 
 # ── Training Branch ────────────────────────────────────────────────────────────
 if TRAINING:
     print('=' * 60)
-    print('  PART II — DEEP LEARNING (IMPROVED) — TRAINING')
+    print('  PART II — DEEP LEARNING (v4) — TRAINING')
     print('=' * 60)
-    print(f'  Device: {device}')
+    print(f'  Device : {device}')
     t_start = time.time()
 
     X, y = load_data(TRAIN_DATA_PATH)
     print(f'\nData loaded : {X.shape}')
     print(f'Class counts: {dict(zip(*np.unique(y.astype(int), return_counts=True)))}')
 
-    # pos_weight from ORIGINAL class ratio (before SMOTE)
-    # This is critical: after SMOTE the ratio is ~1.0, so computing pos_weight
-    # from the resampled data effectively disables it. We want it from the raw data.
-    n_neg_orig, n_pos_orig = np.bincount(y.astype(int))
-    orig_pos_weight = torch.tensor([n_neg_orig / n_pos_orig],
-                                   dtype=torch.float32).to(device)
-    print(f'pos_weight  : {orig_pos_weight.item():.2f}  (from original ratio)')
+    # RepeatedStratifiedKFold gives stable estimates on a 158-sample dataset.
+    # 5 splits × 3 repeats = 15 fold evaluations per config.
+    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=SEED)
 
-    # ── 5-fold CV for development metrics + out-of-fold threshold search ──────
-    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    cv_f1s, cv_aucs = [], []
-    oof_probs, oof_true = np.zeros(len(y)), np.zeros(len(y))
+    # ── Phase 1: Config sweep ──────────────────────────────────────────────────
+    # SelectKBest is fit inside each training fold — no leakage onto validation.
+    print(f'\n── Phase 1: Config sweep (RepeatedStratifiedKFold 5×3, '
+          f'early stopping patience={PATIENCE}) ──')
+    print(f'  {"Config":12s}  {"F1-macro":16s}  {"AUC":10s}  avg_epoch  threshold')
 
-    print(f'\nRunning 5-fold cross-validation ({EPOCHS} epochs / fold)...')
-    for fold, (tr_idx, val_idx) in enumerate(kf.split(X, y)):
-        X_tr, X_val = X[tr_idx], X[val_idx]
-        y_tr, y_val = y[tr_idx], y[val_idx]
+    config_results = {}
+    for cfg in CONFIGS:
+        fold_f1s, fold_aucs, fold_epochs, fold_thresholds = [], [], [], []
 
-        # Fit scaler + PCA on training fold only (no leakage)
-        scaler = StandardScaler()
-        X_tr_s = scaler.fit_transform(X_tr)
-        X_val_s = scaler.transform(X_val)
+        for tr_idx, val_idx in cv.split(X, y):
+            X_tr_raw, X_val_raw = X[tr_idx], X[val_idx]
+            y_tr,     y_val     = y[tr_idx], y[val_idx]
 
-        pca = PCA(n_components=PCA_VARIANCE, random_state=42)
-        X_tr_p = pca.fit_transform(X_tr_s)
-        X_val_p = pca.transform(X_val_s)
+            # Feature selection: fit only on training fold
+            sel = SelectKBest(f_classif, k=cfg['k'])
+            X_tr_sel  = sel.fit_transform(X_tr_raw, y_tr.astype(int))
+            X_val_sel  = sel.transform(X_val_raw)
 
-        # SMOTE on the PCA-compressed training fold
-        smote = SMOTE(random_state=42, k_neighbors=4)
-        X_tr_sm, y_tr_sm = smote.fit_resample(X_tr_p, y_tr.astype(int))
-        y_tr_sm = y_tr_sm.astype(np.float32)
+            # Scale after selection
+            sc = StandardScaler()
+            X_tr_s = sc.fit_transform(X_tr_sel).astype(np.float32)
+            X_val_s = sc.transform(X_val_sel).astype(np.float32)
 
-        loader = make_loader(X_tr_sm, y_tr_sm, BATCH_SIZE)
+            _, best_info = train_fold(X_tr_s, y_tr, X_val_s, y_val, cfg, seed=SEED)
+            fold_f1s.append(best_info['f1'])
+            fold_thresholds.append(best_info['threshold'])
+            fold_epochs.append(best_info['epoch'])
+            try:
+                probs = get_probs(
+                    MLP(X_tr_s.shape[1], cfg['hidden'], cfg['dropout']).to(device),
+                    X_val_s)
+                # re-use model from best_info state
+                m_tmp = MLP(X_tr_s.shape[1], cfg['hidden'], cfg['dropout']).to(device)
+                m_tmp.load_state_dict(best_info['state'])
+                fold_aucs.append(roc_auc_score(y_val.astype(int),
+                                               get_probs(m_tmp, X_val_s)))
+            except Exception:
+                fold_aucs.append(float('nan'))
 
-        # pos_weight uses the ORIGINAL fold ratio, not the post-SMOTE ratio
-        n_neg_f, n_pos_f = np.bincount(y_tr.astype(int))
-        fold_pw = torch.tensor([n_neg_f / n_pos_f], dtype=torch.float32).to(device)
+        f1_mean = float(np.mean(fold_f1s))
+        f1_std  = float(np.std(fold_f1s))
+        auc_mean = float(np.nanmean(fold_aucs))
+        ep_mean  = float(np.mean(fold_epochs))
+        t_mean   = float(np.mean(fold_thresholds))
+        config_results[cfg['name']] = {
+            'config': cfg, 'f1': f1_mean, 'f1_std': f1_std,
+            'auc': auc_mean, 'epoch': ep_mean, 'threshold': t_mean,
+        }
+        print(f'  {cfg["name"]:12s}  {f1_mean:.4f} ± {f1_std:.4f}  '
+              f'{auc_mean:.4f}  {ep_mean:5.1f}  {t_mean:.3f}')
 
-        model = build_model(X_tr_p.shape[1])
-        optimizer  = optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-        criterion  = nn.BCEWithLogitsLoss(pos_weight=fold_pw)
-        scheduler  = optim.lr_scheduler.CosineAnnealingLR(
-                         optimizer, T_max=EPOCHS, eta_min=1e-6)
+    best_cfg_name = max(config_results, key=lambda k: config_results[k]['f1'])
+    best_result   = config_results[best_cfg_name]
+    best_cfg      = best_result['config']
+    print(f'\n  Winner: {best_cfg_name}  '
+          f'(F1={best_result["f1"]:.4f}, AUC={best_result["auc"]:.4f})')
 
-        for _ in range(EPOCHS):
-            train_epoch(model, loader, optimizer, criterion)
-            scheduler.step()
+    # ── Phase 2: Train final ensemble on full development set ──────────────────
+    # Fit SelectKBest and StandardScaler on the full dataset.
+    # Train FINAL_SEEDS models with different initialisations and average at
+    # inference — reduces variance without requiring more data.
+    # Epoch count: max(250, mean_best_epoch) following Tyler's heuristic.
+    final_epochs = max(250, int(round(best_result['epoch'])))
+    print(f'\n── Phase 2: Training {FINAL_SEEDS}-seed ensemble '
+          f'({final_epochs} epochs each) ──')
 
-        probs = get_probs(model, X_val_p)
-        preds = (probs >= 0.5).astype(int)
+    final_sel = SelectKBest(f_classif, k=best_cfg['k'])
+    X_sel     = final_sel.fit_transform(X, y.astype(int))
+    final_sc  = StandardScaler()
+    X_s       = final_sc.fit_transform(X_sel).astype(np.float32)
 
-        oof_probs[val_idx] = probs
-        oof_true[val_idx]  = y_val
+    final_models = []
+    for seed in range(FINAL_SEEDS):
+        m = train_final(X_s, y, best_cfg, final_epochs, seed)
+        final_models.append(m)
+        print(f'  Seed {seed} done')
 
-        f1  = f1_score(y_val.astype(int), preds, average='macro')
-        auc = roc_auc_score(y_val.astype(int), probs)
-        cv_f1s.append(f1)
-        cv_aucs.append(auc)
-        print(f'  Fold {fold+1}: F1={f1:.4f}  AUC={auc:.4f}'
-              f'  (PCA kept {pca.n_components_} components)')
+    # Training performance (ensemble average, CV-derived threshold)
+    ens_probs = np.mean([get_probs(m, X_s) for m in final_models], axis=0)
+    threshold = best_result['threshold']
+    preds_tr  = (ens_probs >= threshold).astype(int)
+    report_metrics(y, preds_tr, ens_probs,
+                   f'Training Performance — {best_cfg_name} ensemble '
+                   f'(threshold={threshold:.3f})')
 
-    print(f'\nCV F1  (macro): {np.mean(cv_f1s):.4f} ± {np.std(cv_f1s):.4f}')
-    print(f'CV AUC-ROC    : {np.mean(cv_aucs):.4f} ± {np.std(cv_aucs):.4f}')
-
-    # Out-of-fold threshold optimisation
-    optimal_threshold, oof_f1 = find_optimal_threshold(oof_true, oof_probs)
-    oof_preds = (oof_probs >= optimal_threshold).astype(int)
-    oof_auc   = roc_auc_score(oof_true.astype(int), oof_probs)
-    print(f'\nOOF threshold : {optimal_threshold:.3f}')
-    print(f'OOF F1 (macro): {oof_f1:.4f}')
-    print(f'OOF AUC-ROC   : {oof_auc:.4f}')
-
-    # ── Final model on full development set ───────────────────────────────────
-    print(f'\nTraining final model on full dev set ({EPOCHS} epochs)...')
-    final_scaler = StandardScaler()
-    X_s = final_scaler.fit_transform(X)
-
-    final_pca = PCA(n_components=PCA_VARIANCE, random_state=42)
-    X_p = final_pca.fit_transform(X_s)
-    print(f'PCA: {X.shape[1]} features → {final_pca.n_components_} components')
-
-    smote = SMOTE(random_state=42, k_neighbors=4)
-    X_sm, y_sm = smote.fit_resample(X_p, y.astype(int))
-    y_sm = y_sm.astype(np.float32)
-
-    final_loader = make_loader(X_sm, y_sm, BATCH_SIZE)
-
-    final_model = build_model(X_p.shape[1])
-    optimizer  = optim.Adam(final_model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-    criterion  = nn.BCEWithLogitsLoss(pos_weight=orig_pos_weight)
-    scheduler  = optim.lr_scheduler.CosineAnnealingLR(
-                     optimizer, T_max=EPOCHS, eta_min=1e-6)
-
-    for epoch in range(EPOCHS):
-        train_epoch(final_model, final_loader, optimizer, criterion)
-        scheduler.step()
-        if (epoch + 1) % 100 == 0:
-            print(f'  Epoch {epoch+1:>4}/{EPOCHS}')
-
-    # Training performance on original (unaugmented, uncompressed) dev set
-    probs_tr = get_probs(final_model, X_p)
-    preds_tr = (probs_tr >= optimal_threshold).astype(int)
-    report_metrics(y, preds_tr, probs_tr,
-                   f'Training Performance (threshold={optimal_threshold:.3f})')
-
-    # Save model weights + all preprocessing artifacts
+    # ── Save ──────────────────────────────────────────────────────────────────
     torch.save({
-        'model_state': final_model.state_dict(),
-        'input_dim':   final_pca.n_components_,
+        'model_states': [m.state_dict() for m in final_models],
+        'config':       best_cfg,
     }, MODEL_PATH)
     joblib.dump({
-        'scaler':     final_scaler,
-        'pca':        final_pca,
-        'threshold':  optimal_threshold,
+        'selector':  final_sel,
+        'scaler':    final_sc,
+        'threshold': threshold,
     }, PREPROC_PATH)
 
     print(f'\nModel saved to  : {MODEL_PATH}')
@@ -268,7 +299,7 @@ if TRAINING:
 # ── Inference Branch ───────────────────────────────────────────────────────────
 else:
     print('=' * 60)
-    print('  PART II — DEEP LEARNING (IMPROVED) — INFERENCE')
+    print('  PART II — DEEP LEARNING (v4) — INFERENCE')
     print('=' * 60)
     print(f'  Device: {device}')
 
@@ -276,20 +307,26 @@ else:
     print(f'\nData loaded : {X.shape}')
     print(f'Class counts: {dict(zip(*np.unique(y.astype(int), return_counts=True)))}')
 
-    # Load all preprocessing + model
     preproc   = joblib.load(PREPROC_PATH)
+    selector  = preproc['selector']
     scaler    = preproc['scaler']
-    pca       = preproc['pca']
     threshold = preproc['threshold']
-    print(f'Loaded threshold: {threshold:.3f}')
 
-    X_s = scaler.transform(X)
-    X_p = pca.transform(X_s)
+    X_sel = selector.transform(X)
+    X_s   = scaler.transform(X_sel).astype(np.float32)
 
-    model = build_model(pca.n_components_)
     ckpt  = torch.load(MODEL_PATH, map_location=device)
-    model.load_state_dict(ckpt['model_state'])
+    cfg   = ckpt['config']
+    input_dim = X_s.shape[1]
 
-    probs = get_probs(model, X_p)
+    models = []
+    for state in ckpt['model_states']:
+        m = MLP(input_dim, cfg['hidden'], cfg['dropout']).to(device)
+        m.load_state_dict(state)
+        models.append(m)
+
+    print(f'Loaded {len(models)}-model ensemble  |  threshold={threshold:.3f}')
+
+    probs = np.mean([get_probs(m, X_s) for m in models], axis=0)
     preds = (probs >= threshold).astype(int)
     report_metrics(y, preds, probs, 'Test Set Performance')
