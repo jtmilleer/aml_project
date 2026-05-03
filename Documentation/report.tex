@@ -138,7 +138,11 @@ Due to the large number of features and wide variation in scale, component scali
 
 \subsubsection{Model selection}
 
-\placeholder{Talk about what model picked and why}
+Initially, SVM with PCA was chosen for the traditional method and MLP (Multi-Layer Perceptron)was chosen for the deep learning method.
+
+SVM (Support Vector Machine) was chosen because SVMs work well for small-sample, high-dimensional problems.
+
+PCA was chosen to decorrelate the features and reduce dimensionality as outlined in the section above. It also plays very nicely with SVMs. Redundant features can make SVM optimization unstable and greatly reduces the training speed of the model. PCA discarding the dimensions that contain the remaining 5\% of variance can also improve test performance if those dimensions are noisy.
 
 
 \subsection{Results}
