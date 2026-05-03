@@ -120,14 +120,21 @@
 
 \subsubsection{File size, class balance, scale of features}
 
-\placeholder{File size, class balance, scale of features}
+The PartII\_dev.csv file contains 125 features. Each feature has 158 numerical samples, with 126 belonging to class 0 and 32 belonging to class 1. This represents a 4:1 class imbalance. The features have widely ranging scales. There are no missing values.
 
 
 \subsection{Design Decisions}
 
 \subsubsection{Pipeline elements}
 
-\placeholder{Talk about why you picked the elements of the pipeline you used}
+The massive redundancy in features and very small sample size were the main constraints for this part of the project.
+
+SMOTE was used for both the traditional and deep learning processes. SMOTE (Synthetic Minority Over-Sampling Technique)synthesizes new minority-class samples by interpolating between existing ones in the feature space. With only 32 class 1 samples, a classifier that always predicts class 0 would have 80\% accuracy. Therefore, SMOTE is necessary to give the model a better view of the boundary between classes and prevent it from only predicting class 0. 
+
+Due to the large number of features and wide variation in scale, component scaling and reduction was used for the traditional portion. First, StandardScaler was used to scale the features, then PCA was used to reduce the number of components to those that represent 95\% of the variance (11 features).
+
+
+
 
 \subsubsection{Model selection}
 
