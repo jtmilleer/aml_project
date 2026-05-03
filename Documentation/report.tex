@@ -137,7 +137,9 @@ Once the best model was selected, GridSearchCV was used to tune model parameters
 
 Due to the large number of features and wide variation in scale, component scaling and reduction was used for the traditional portion. First, StandardScaler was used to scale the features, then PCA was used to reduce the number of components to those that represent 95\% of the variance (11 features).
 
+For the deep learning section, BatchNorm was used after each layer. BatchNorm normalizes activations to the zero mean and unit variance per batch, which acts a regularizer. It also reduces sensitivity to weight activation.
 
+ReLU activation was used, which is the standard choice. Initially, dropout was set to 0.5. This meant that after each BatchNorm+ReLU a random 50\% selection of neurons would be zeroed. It was chosen to have such aggressive regularization because of the small dataset.
 
 \subsubsection{Model selection}
 
@@ -146,6 +148,11 @@ Initially, SVM with PCA was chosen for the traditional method and MLP (Multi-Lay
 SVM (Support Vector Machine) was chosen based on the results of the model comparison CV. SVMs work well for small-sample, high-dimensional problems. The RBF kernel was chosen for it's ability to map into an infinite-dimensional space. This allows non-linear decision boundaries, which is appropriate for this problem as we have no knowledge of whether the classes are really linearly separable.
 
 PCA was chosen to decorrelate the features and reduce dimensionality as outlined in the section above. It also plays very nicely with SVMs. Redundant features can make SVM optimization unstable and greatly reduces the training speed of the model. PCA discarding the dimensions that contain the remaining 5\% of variance can also improve test performance if those dimensions are noisy.
+
+For the deep learning portion, MLP was chosen because it typically does better than other deep learning models when learning non-linear interactions between features. The dataset for part two is very small, so it is anticipated to perform worse for deep learning compared to traditional learning in general.
+
+It was decided to have cap the model at three hidden layers, starting with a width of 128 and halving the width each layer (128 -> 64 -> 32). Knowing the model would already struggle with overfitting due to the small sample size, it would be counter-intuitive to use many layers. 
+
 
 
 \subsection{Results}
