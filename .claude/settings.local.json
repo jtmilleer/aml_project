@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(conda run *)",
+      "PowerShell(conda run -n aml_26 python -c \"import torch; print\\('PyTorch version:', torch.__version__\\); print\\('CUDA available:', torch.cuda.is_available\\(\\)\\)\" 2>&1)",
+      "PowerShell(nvidia-smi 2>&1)",
+      "PowerShell(conda create -n aml_p2 python=3.11 -y 2>&1)",
+      "PowerShell(tail -5)",
+      "PowerShell(conda run -n aml_p2 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1)",
+      "PowerShell(conda run -n aml_p2 pip install scikit-learn imbalanced-learn pandas matplotlib seaborn jupyter ipykernel joblib 2>&1)",
+      "PowerShell(conda run -n aml_p2 python -c \"import torch; import sklearn; import imblearn; import pandas; import numpy; import matplotlib; import seaborn; import joblib; print\\('torch', torch.__version__, 'cuda', torch.cuda.is_available\\(\\)\\); print\\('sklearn', sklearn.__version__\\); print\\('imblearn', imblearn.__version__\\); print\\('pandas', pandas.__version__\\); print\\('numpy', numpy.__version__\\)\")",
+      "PowerShell(conda run -n aml_p2 python -c \"import torch; print\\('GPU:', torch.cuda.get_device_name\\(0\\)\\)\" 2>&1)",
+      "PowerShell(conda run -n aml_p2 python \"c:\\\\Users\\\\sydys\\\\Documents\\\\GitHub\\\\aml_project\\\\explore_temp.py\" 2>&1)"
+    ]
+  }
+}
