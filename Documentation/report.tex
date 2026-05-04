@@ -136,13 +136,12 @@
 
 \subsubsection{Pipeline elements (Deep Learning Method)}
 
-\ \ SelectKBest and StandardScalar are again used for the deep learning model.
-
-\ \ 
+\ \ SelectKBest and StandardScalar are again used for the deep learning model. Like the traditional method, SMOTE was originally used. Not only did it not improve performance, it seemed to actively degrade it. In the final version there is no minority class synthesis.
 
 \subsubsection{Model selection (Traditional)}
 
 \ \ To select a model, StratifiedKFold cross validation (specdifically RepeatedStratifiedKFold) with 5 splits repeated 5 times was used to compare models. CV F1, CV AUC-ROC, and threshold were compared between LogReg with SelectKBest(k=10), LogReg with SelectKBest(k=7), SVM using RBF kernel and SelectKBest(k=8), and LogReg with PCA. 
+
 \begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{figures/traditional_model_CV}
@@ -155,9 +154,17 @@
 
 \ \ MLP (Multi-Layer Perceptron) was, based on research, used for this dataset. MLP is a deep learning model well-suited for non-linear class boundaries. After experimenting with model size, it was determined to be best to use a smaller model. The original large model not only took too long to train, but was also not performant on the very small dataset.
 
-\ \ The final model used a single hidden layer. BatchNorm was used to normalize activations to zero mean/unit variance per batch, which stabilized training and acted as a mild regularizer. BatchNorm also reduced sensitivity to weight initialization. ReLU was used as the activation function with Dropout(0.25). The final model had 220 parameters.
+\ \ The final model used a single hidden layer. BatchNorm was used to normalize activations to zero mean/unit variance per batch, which stabilized training and acted as a mild regularizer. BatchNorm also reduced sensitivity to weight initialization. ReLU was used as the activation function with Dropout(0.25). BCEWithLogitsLoss was used for the output layer. For the final training, the model trained for 250 epochs and used ensemble over 5 random initializations. The final model had 220 parameters.
 
-\ \ BCEWithLogitsLoss was used for the output layer.
+\ \ To determine the best configurations, RepeatedStratifiedKFold CV was used for 15 folds. During these training steps, early stopping was utilized.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/deep_model_CV}
+  \caption{Result of config selection StratifiedKFold cross validation}
+\end{figure}
+
+\ \ Based on these results, the best configuration and the one used was k12\_16: 12 input features, 16 neurons in the hidden layer, 0.25 dropout (randomly zero 25\% of neurons, helps prevent overfitting), weight decay of 1e-12, and learning rate of 1e-3.
 
 \subsection{Results}
 

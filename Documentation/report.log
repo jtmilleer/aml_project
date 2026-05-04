@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.23)  3 MAY 2026 20:23
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.23)  3 MAY 2026 21:58
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -420,9 +420,19 @@ Package hyperref Info: Link coloring ON on input line 33.
 File: figures/traditional_model_CV.png Graphic file (type png)
 <use figures/traditional_model_CV.png>
 Package pdftex.def Info: figures/traditional_model_CV.png  used on input line 1
-48.
+47.
 (pdftex.def)             Requested size: 469.75502pt x 92.97511pt.
- [5 <./figures/traditional_model_CV.png>] [6] (./report.aux)
+<figures/deep_model_CV.png, id=198, 1295.59032pt x 237.13594pt>
+File: figures/deep_model_CV.png Graphic file (type png)
+<use figures/deep_model_CV.png>
+Package pdftex.def Info: figures/deep_model_CV.png  used on input line 163.
+(pdftex.def)             Requested size: 469.75502pt x 85.98038pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[5 <./figures/traditional_model_CV.png>] [6 <./figures/deep_model_CV.png>]
+(./report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -431,21 +441,21 @@ Package rerunfilecheck Info: File `report.out' has not changed.
 (rerunfilecheck)             Checksum: 25F9C80D72DA76FD8611120612B2DC7B;5901.
  ) 
 Here is how much of TeX's memory you used:
- 10592 strings out of 467533
- 160819 string characters out of 5423668
+ 10604 strings out of 467533
+ 161166 string characters out of 5423668
  599970 words of memory out of 5000000
- 39346 multiletter control sequences out of 15000+600000
+ 39357 multiletter control sequences out of 15000+600000
  634361 words of font info for 63 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,7n,79p,1195b,450s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,6n,79p,1195b,454s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/tex
 live/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2025/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2025/texmf-dist
 /fonts/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on report.pdf (6 pages, 122126 bytes).
+Output written on report.pdf (6 pages, 157131 bytes).
 PDF statistics:
- 239 PDF objects out of 1000 (max. 8388607)
- 218 compressed objects within 3 object streams
- 42 named destinations out of 1000 (max. 500000)
- 278 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 243 PDF objects out of 1000 (max. 8388607)
+ 220 compressed objects within 3 object streams
+ 43 named destinations out of 1000 (max. 500000)
+ 283 words of extra memory for PDF output out of 10000 (max. 10000000)
 
