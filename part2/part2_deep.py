@@ -1,14 +1,5 @@
 """
 Part II - Deep Learning Method (v4)
-Key changes from v3:
-  - SelectKBest(f_classif, k=8) replaces PCA — picks the 8 most discriminative
-    raw features by ANOVA F-test instead of the 11 highest-variance PCA directions.
-  - Tiny network matching the reduced input: 8 -> 32 -> 8 -> 1  (~350 params).
-    Eliminates the overfitting that plagued the 50k-parameter v3 network.
-  - Early stopping (patience=20) on per-fold validation F1 — model stops at
-    ~11 epochs on average instead of running all 400 epochs.
-  - AdamW decouples weight decay from gradient updates (better than Adam+wd).
-  - 5-seed ensemble on final training reduces variance across random initialisations.
 """
 
 TRAINING = True  # Professor Beichel, set to False for testing
@@ -254,9 +245,9 @@ if TRAINING:
 
     # ── Phase 2: Train final ensemble on full development set ──────────────────
     # Fit SelectKBest and StandardScaler on the full dataset.
-    # Train FINAL_SEEDS models with different initialisations and average at
+    # Train FINAL_SEEDS models with different initializations and average at
     # inference — reduces variance without requiring more data.
-    # Epoch count: max(250, mean_best_epoch) following Tyler's heuristic.
+    # Epoch count: max(250, mean_best_epoch)
     final_epochs = max(250, int(round(best_result['epoch'])))
     print(f'\n── Phase 2: Training {FINAL_SEEDS}-seed ensemble '
           f'({final_epochs} epochs each) ──')
@@ -296,7 +287,7 @@ if TRAINING:
     print(f'Total time      : {time.time() - t_start:.1f}s')
 
 
-# ── Inference Branch ───────────────────────────────────────────────────────────
+# ── Testing Branch ───────────────────────────────────────────────────────────
 else:
     print('=' * 60)
     print('  PART II — DEEP LEARNING (v4) — INFERENCE')

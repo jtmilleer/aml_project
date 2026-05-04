@@ -1,11 +1,5 @@
 """
 Part II - Traditional Method (v4)
-Key change from v3: SelectKBest(f_classif) replaces PCA.
-PCA maximises variance — SelectKBest maximises discriminative power (ANOVA F-test).
-With only ~8 truly predictive features out of 125, this is a larger win than any
-pipeline tweak tried previously.
-Winner: StandardScaler -> SelectKBest(k=7) -> LogisticRegression(balanced)
-No SMOTE needed: class_weight='balanced' handles the 4:1 imbalance cleanly.
 """
 
 TRAINING = True  # Professor Beichel, set to False for testing
@@ -120,8 +114,6 @@ if TRAINING:
     # ── Phase 1: Model Comparison ──────────────────────────────────────────────
     # SelectKBest(f_classif) applies ANOVA F-test per feature — directly measures
     # how much each feature's distribution shifts between class 0 and class 1.
-    # This outperforms PCA here because many of the 125 features are near-zero
-    # predictors (X94, X117 etc.) that PCA components still partially incorporate.
     print('\n── Phase 1: Model comparison (RepeatedStratifiedKFold 5×5) ──')
     print(f'  {"Model":38s}  F1-macro        AUC-ROC  Threshold')
 
@@ -142,7 +134,7 @@ if TRAINING:
             StandardScaler(),
             SelectKBest(f_classif, k=8),
             SVC(C=1.0, kernel='rbf', class_weight='balanced',
-                probability=True, random_state=SEED),
+                   probability=True, random_state=SEED),
         ),
         'LogReg + PCA(95%)  [v3 approach]': make_pipeline(
             StandardScaler(),
@@ -179,7 +171,7 @@ if TRAINING:
     print(f'Total time    : {time.time() - t_start:.1f}s')
 
 
-# ── Inference Branch ───────────────────────────────────────────────────────────
+# ── Testing Branch ───────────────────────────────────────────────────────────
 else:
     print('=' * 60)
     print('  PART II — TRADITIONAL (v4) — INFERENCE')
