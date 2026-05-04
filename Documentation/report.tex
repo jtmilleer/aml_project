@@ -120,33 +120,51 @@
 
 \subsubsection{File size, class balance, scale of features}
 
-The PartII\_dev.csv file contains 125 features. Each feature has 158 numerical samples, with 126 belonging to class 0 and 32 belonging to class 1. This represents a 4:1 class imbalance. The features have widely ranging scales. There are no missing values.
+\ \ The PartII\_dev.csv file contains 125 features. Each feature has 158 numerical samples, with 126 belonging to class 0 and 32 belonging to class 1. This represents a 4:1 class imbalance. The features have widely ranging scales and many feature pairs are correlated (|r|>0.90). There are no missing values.
 
 
 \subsection{Design Decisions}
+\ \ The massive redundancy in features and very small sample size were the main constraints for this part of the project. Four iterations were tested with the final being the selected iteration of the models.
 
-\subsubsection{Pipeline elements}
+\subsubsection{Pipeline elements (Traditional Method)}
+ 
+\ \ StandardScalar was used in all versions of the traditional ML solution. StandardScalar normalizes the data to zero-mean and unit-variance, which was necessary due to the variety of scale in the dataset.
 
-The massive redundancy in features and very small sample size were the main constraints for this part of the project.
+\ \ For dimensionality reduction, initially PCA was selected. PCA discards all features except for the ones that account for 95\% of the variance (in this case, all but 11 features). However, those high-variance features were not actually the most \underline{predictive} features. Instead, SelectKBest was used. SelectKBest runs an ANOVA F-test on each feature independently against Y. The 10 most statistically discriminative features were kept and the rest were discarded.
 
-SMOTE was used for both the traditional and deep learning processes. SMOTE (Synthetic Minority Over-Sampling Technique)synthesizes new minority-class samples by interpolating between existing ones in the feature space. With only 32 class 1 samples, a classifier that always predicts class 0 would have 80\% accuracy. Therefore, SMOTE is necessary to give the model a better view of the boundary between classes and prevent it from only predicting class 0. 
+\ \ In earlier versions, SMOTE was used to generate synthetic minority-class samples. However, it did not show significant improvements in performance. LogReg can be set to class\_weight(balanced) to adjust for the unbalanced classes instead.
 
-For the traditional model, StratifiedKFold with 5 folds was used to compare models. It compared performance of SVM with PCA, LogReg with PCA, RandomForest, and HistGBM.
+\subsubsection{Pipeline elements (Deep Learning Method)}
 
-Once the best model was selected, GridSearchCV was used to tune model parameters.
+\ \ SelectKBest and StandardScalar are again used for the deep learning model. Like the traditional method, SMOTE was originally used. Not only did it not improve performance, it seemed to actively degrade it. In the final version there is no minority class synthesis.
 
-Due to the large number of features and wide variation in scale, component scaling and reduction was used for the traditional portion. First, StandardScaler was used to scale the features, then PCA was used to reduce the number of components to those that represent 95\% of the variance (11 features).
+\subsubsection{Model selection (Traditional)}
 
+\ \ To select a model, StratifiedKFold cross validation (specdifically RepeatedStratifiedKFold) with 5 splits repeated 5 times was used to compare models. CV F1, CV AUC-ROC, and threshold were compared between LogReg with SelectKBest(k=10), LogReg with SelectKBest(k=7), SVM using RBF kernel and SelectKBest(k=8), and LogReg with PCA. 
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/traditional_model_CV}
+  \caption{Result of model selection StratifiedKFold cross validation}
+\end{figure}
+ 
+\ \ Based on the CV results, LogReg with SelectKBest(k=10) was selected as the traditional learning method.
 
-\subsubsection{Model selection}
+\subsubsection{Model selection (Deep Learning)}
 
-Initially, SVM with PCA was chosen for the traditional method and MLP (Multi-Layer Perceptron)was chosen for the deep learning method.
+\ \ MLP (Multi-Layer Perceptron) was, based on research, used for this dataset. MLP is a deep learning model well-suited for non-linear class boundaries. After experimenting with model size, it was determined to be best to use a smaller model. The original large model not only took too long to train, but was also not performant on the very small dataset.
 
-SVM (Support Vector Machine) was chosen based on the results of the model comparison CV. SVMs work well for small-sample, high-dimensional problems. The RBF kernel was chosen for it's ability to map into an infinite-dimensional space. This allows non-linear decision boundaries, which is appropriate for this problem as we have no knowledge of whether the classes are really linearly separable.
+\ \ The final model used a single hidden layer. BatchNorm was used to normalize activations to zero mean/unit variance per batch, which stabilized training and acted as a mild regularizer. BatchNorm also reduced sensitivity to weight initialization. ReLU was used as the activation function with Dropout(0.25). BCEWithLogitsLoss was used for the output layer. For the final training, the model trained for 250 epochs and used ensemble over 5 random initializations. The final model had 220 parameters.
 
-PCA was chosen to decorrelate the features and reduce dimensionality as outlined in the section above. It also plays very nicely with SVMs. Redundant features can make SVM optimization unstable and greatly reduces the training speed of the model. PCA discarding the dimensions that contain the remaining 5\% of variance can also improve test performance if those dimensions are noisy.
+\ \ To determine the best configurations, RepeatedStratifiedKFold CV was used for 15 folds. During these training steps, early stopping was utilized.
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/deep_model_CV}
+  \caption{Result of config selection StratifiedKFold cross validation}
+\end{figure}
+
+\ \ Based on these results, the best configuration and the one used was k12\_16: 12 input features, 16 neurons in the hidden layer, 0.25 dropout (randomly zero 25\% of neurons, helps prevent overfitting), weight decay of 1e-12, and learning rate of 1e-3.
 
 \subsection{Results}
 
