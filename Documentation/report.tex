@@ -120,24 +120,36 @@
 
 \subsubsection{File size, class balance, scale of features}
 
-\ \ The PartII\_dev.csv file contains 125 features. Each feature has 158 numerical samples, with 126 belonging to class 0 and 32 belonging to class 1. This represents a 4:1 class imbalance. The features have widely ranging scales. There are no missing values.
+\ \ The PartII\_dev.csv file contains 125 features. Each feature has 158 numerical samples, with 126 belonging to class 0 and 32 belonging to class 1. This represents a 4:1 class imbalance. The features have widely ranging scales and many feature pairs are correlated (|r|>0.90). There are no missing values.
 
 
 \subsection{Design Decisions}
 \ \ The massive redundancy in features and very small sample size were the main constraints for this part of the project. Four iterations were tested with the final being the selected iteration of the models.
 
-\subsubsection{Pipeline elements}
+\subsubsection{Pipeline elements (Traditional Method)}
  
-\ \ For dimensionality reduction, initially PCA was selected. PCA discards all features except for the ones that account for 95\% of the variance (in this case, all but 11 features). However, those high-variance features were not actually the most \underline{predictive} features. Instead, SelectKBest was used. SelectKBest runs an ANOVA F-test on each feature independently against Y. Using 
+\ \ StandardScalar was used in all versions of the traditional ML solution. StandardScalar normalizes the data to zero-mean and unit-variance, which was necessary due to the variety of scale in the dataset.
 
+\ \ For dimensionality reduction, initially PCA was selected. PCA discards all features except for the ones that account for 95\% of the variance (in this case, all but 11 features). However, those high-variance features were not actually the most \underline{predictive} features. Instead, SelectKBest was used. SelectKBest runs an ANOVA F-test on each feature independently against Y. The 10 most statistically discriminative features were kept and the rest were discarded.
 
+\ \ In earlier versions, SMOTE was used to generate synthetic minority-class samples. However, it did not show significant improvements in performance. LogReg can be set to class\_weight(balanced) to adjust for the unbalanced classes instead.
 
+\subsubsection{Pipeline elements (Deep Learning Method)}
 
-\subsubsection{Model selection}
+\ \ SelectKBest and StandardScalar are again used for the deep learning model.
 
+\subsubsection{Model selection (Traditional)}
 
+\ \ To select a model, StratifiedKFold cross validation (specdifically RepeatedStratifiedKFold) with 5 splits repeated 5 times was used to compare models. CV F1, CV AUC-ROC, and threshold were compared between LogReg with SelectKBest(k=10), LogReg with SelectKBest(k=7), SVM using RBF kernel and SelectKBest(k=8), and LogReg with PCA. 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/traditional_model_CV}
+  \caption{Result of model selection StratifiedKFold cross validation}
+\end{figure}
 
+\ \ Based on the CV results, LogReg with SelectKBest(k=10) was selected as the traditional learning method.
 
+\subsubsection{Model selection (Deep Learning)}
 
 \subsection{Results}
 

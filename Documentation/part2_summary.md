@@ -31,12 +31,12 @@ StandardScaler → SelectKBest(f_classif, k=10) → LogisticRegression
 
 Four pipelines were compared using **RepeatedStratifiedKFold (5 splits × 5 repeats = 25 folds)**. Per-fold threshold optimisation maximises F1-macro on each validation fold.
 
-| Model | CV F1 (macro) | CV AUC-ROC | Threshold |
-|---|---|---|---|
-| **LogReg + SelectKBest(k=10)** | **0.724 ± 0.066** | **0.738** | 0.626 |
-| LogReg + SelectKBest(k=7) | 0.724 ± 0.071 | 0.738 | 0.617 |
-| SVM(RBF) + SelectKBest(k=8) | 0.702 ± 0.070 | 0.701 | 0.298 |
-| LogReg + PCA(95%) | 0.648 ± 0.064 | 0.618 | 0.612 |
+|              Model             |   CV F1 (macro)   | CV AUC-ROC | Threshold |
+|--------------------------------|-------------------|------------|-----------|
+| **LogReg + SelectKBest(k=10)** | **0.724 ± 0.066** |  **0.738** |   0.626   |
+|    LogReg + SelectKBest(k=7)   |   0.724 ± 0.071   |    0.738   |   0.617   |
+|   SVM(RBF) + SelectKBest(k=8)  |   0.702 ± 0.070   |    0.701   |   0.298   |
+|        LogReg + PCA(95%)       |   0.648 ± 0.064   |    0.618   |   0.612   |
 
 The SelectKBest→LogReg pipeline outperforms PCA→LogReg by +0.076 F1. Selecting raw discriminative features is more effective than rotating the full feature space.
 
