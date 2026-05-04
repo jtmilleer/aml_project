@@ -25,10 +25,10 @@
 \contentsline {subsubsection}{\numberline {2.2.2}Pipeline elements (Deep Learning Method)}{5}{subsubsection.2.2.2}%
 \contentsline {subsubsection}{\numberline {2.2.3}Model selection (Traditional)}{5}{subsubsection.2.2.3}%
 \contentsline {subsubsection}{\numberline {2.2.4}Model selection (Deep Learning)}{5}{subsubsection.2.2.4}%
-\contentsline {subsection}{\numberline {2.3}Results}{5}{subsection.2.3}%
-\contentsline {subsubsection}{\numberline {2.3.1}Development and training time}{5}{subsubsection.2.3.1}%
-\contentsline {subsubsection}{\numberline {2.3.2}Numerical metrics}{5}{subsubsection.2.3.2}%
-\contentsline {subsubsection}{\numberline {2.3.3}Confusion matrix}{5}{subsubsection.2.3.3}%
-\contentsline {subsubsection}{\numberline {2.3.4}Predicted results on test set}{5}{subsubsection.2.3.4}%
+\contentsline {subsection}{\numberline {2.3}Results}{6}{subsection.2.3}%
+\contentsline {subsubsection}{\numberline {2.3.1}Development and training time}{6}{subsubsection.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.3.2}Numerical metrics}{6}{subsubsection.2.3.2}%
+\contentsline {subsubsection}{\numberline {2.3.3}Confusion matrix}{6}{subsubsection.2.3.3}%
+\contentsline {subsubsection}{\numberline {2.3.4}Predicted results on test set}{6}{subsubsection.2.3.4}%
 \contentsline {subsection}{\numberline {2.4}Conclusion}{6}{subsection.2.4}%
 \contentsline {subsubsection}{\numberline {2.4.1}Lessons learned}{6}{subsubsection.2.4.1}%
