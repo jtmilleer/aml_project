@@ -95,9 +95,9 @@ Three architectures were evaluated using **RepeatedStratifiedKFold (5×3 = 15 fo
 |         Metric        |    CV estimate    | Training (full dev set) |
 |-----------------------|-------------------|-------------------------|
 |        Accuracy       |         —         |          0.7658         |
-|       F1 (macro)      | **0.758 ± 0.085** |          0.6823         |
+|       F1 (macro)      |   0.758 ± 0.085   |          0.6823         |
 | F1 (minority class=1) |         —         |          0.5195         |
-|        AUC-ROC        |     **0.706**     |          0.7904         |
+|        AUC-ROC        |       0.706       |          0.7904         |
 |       Threshold       |       0.496       |            —            |
 |     Training time     |         —         | 268 s (5-seed ensemble) |
 
