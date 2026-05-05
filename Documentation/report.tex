@@ -254,11 +254,21 @@ needed.}
 
 \subsubsection{Confusion Matrix}
 
+\ \ Two sets of confusion matrices were generated for this part of the project. The main model was trained on the full training set due to the dataset being so small and Professor Beichel having access to the test set. To assess generalization, a version of the model was re-fit to 80\% of the training data and "tested" on the remaining 20\% holdout dev data.
+
 \begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{figures/p2_confusion_matrices}
-  \caption{Confusion matrices for Part II}
+  \caption{Confusion matrices for Part II models fit to 80\% of the training data. Shows model generalization}
 \end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/p2_confusion_matrices_train}
+  \caption{Confusion matrices for both Part II models, not re-fit}
+\end{figure}
+
+
 
 \subsubsection{Analysis}
 
@@ -273,7 +283,7 @@ needed.}
 
 \subsubsection{Model Comparison}
 
-\ \ The following figures were generated based on the results testing ona reserved development portion of the dataset of both Part II models:
+\ \ The following figures were generated based on both Part II models:
 
 \begin{figure}[h]
   \centering

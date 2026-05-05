@@ -24,7 +24,10 @@ from sklearn.metrics import (
     confusion_matrix, roc_curve, auc,
     f1_score, accuracy_score, balanced_accuracy_score, roc_auc_score
 )
-from sklearn.model_selection import StratifiedKFold
+from torch.utils.data import TensorDataset, DataLoader
+from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 DATA_PATH     = 'part2/PartII_dev.csv'
@@ -102,40 +105,106 @@ deep_preds = (deep_scores >= deep_thresh).astype(int)
 print(f'Traditional — F1={f1_score(y,trad_preds,average="macro"):.4f}  AUC={roc_auc_score(y,trad_scores):.4f}')
 print(f'Deep        — F1={f1_score(y,deep_preds,average="macro"):.4f}  AUC={roc_auc_score(y,deep_scores):.4f}')
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Figure 1 — Confusion Matrices
-# ══════════════════════════════════════════════════════════════════════════════
-fig, axes = plt.subplots(1, 2, figsize=(9, 4))
-fig.suptitle('Confusion Matrices — Training Set (Part II, v4)', fontweight='bold', y=1.02)
+# ── 80/20 Stratified Holdout — re-fit models on 80%, evaluate on held-out 20% ─
+# The models saved to disk were trained on all 158 samples, so we re-fit fresh
+# instances here to get uncontaminated holdout confusion matrices.
+# CV-derived thresholds are reused as they are our best estimate.
+sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+tr_idx, ho_idx = next(sss.split(X, y))
+X_tr, X_ho = X[tr_idx], X[ho_idx]
+y_tr, y_ho = y[tr_idx], y[ho_idx]
 
-for ax, cm_data, title, color in zip(
-    axes,
-    [confusion_matrix(y, trad_preds), confusion_matrix(y, deep_preds)],
+# Traditional: re-fit LogReg + SelectKBest(k=10) on the 80% portion
+trad_ho_pipe = make_pipeline(
+    StandardScaler(),
+    SelectKBest(f_classif, k=10),
+    LogisticRegression(C=0.1, solver='liblinear', class_weight='balanced', random_state=42),
+)
+trad_ho_pipe.fit(X_tr, y_tr)
+trad_ho_scores = trad_ho_pipe.predict_proba(X_ho)[:, 1]
+trad_ho_preds  = (trad_ho_scores >= trad_thresh).astype(int)
+
+# Deep: re-fit a single MLP (k=12, hidden=[16]) on the 80% portion
+ho_sel   = SelectKBest(f_classif, k=12)
+X_tr_sel = ho_sel.fit_transform(X_tr, y_tr)
+X_ho_sel = ho_sel.transform(X_ho)
+ho_sc    = StandardScaler()
+X_tr_s2  = ho_sc.fit_transform(X_tr_sel).astype(np.float32)
+X_ho_s2  = ho_sc.transform(X_ho_sel).astype(np.float32)
+
+torch.manual_seed(42)
+ho_mlp  = MLP(X_tr_s2.shape[1], [16], 0.25).to(device)
+ho_opt  = torch.optim.AdamW(ho_mlp.parameters(), lr=1e-3, weight_decay=1e-2)
+n_neg_ho, n_pos_ho = np.bincount(y_tr)
+ho_crit = torch.nn.BCEWithLogitsLoss(
+    pos_weight=torch.tensor([n_neg_ho / n_pos_ho], dtype=torch.float32).to(device))
+ho_loader = DataLoader(
+    TensorDataset(torch.tensor(X_tr_s2), torch.tensor(y_tr.astype(np.float32))),
+    batch_size=32, shuffle=True)
+ho_mlp.train()
+for _ in range(250):
+    for Xb, yb in ho_loader:
+        Xb, yb = Xb.to(device), yb.to(device)
+        ho_opt.zero_grad(set_to_none=True)
+        ho_crit(ho_mlp(Xb), yb).backward()
+        ho_opt.step()
+ho_mlp.eval()
+with torch.no_grad():
+    X_ho_t = torch.tensor(X_ho_s2).to(device)
+    deep_ho_scores = torch.sigmoid(ho_mlp(X_ho_t)).cpu().numpy()
+deep_ho_preds = (deep_ho_scores >= deep_thresh).astype(int)
+print(f'Holdout Traditional — F1={f1_score(y_ho,trad_ho_preds,average="macro"):.4f}')
+print(f'Holdout Deep        — F1={f1_score(y_ho,deep_ho_preds,average="macro"):.4f}')
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Figure 1a — Confusion Matrices (20% Stratified Holdout)
+# ══════════════════════════════════════════════════════════════════════════════
+def _cm_figure(y_true, preds_list, titles, colors, suptitle, filename):
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+    fig.suptitle(suptitle, fontweight='bold', y=1.02)
+    for ax, preds, title, color in zip(axes, preds_list, titles, colors):
+        cm_data = confusion_matrix(y_true, preds)
+        cmap = LinearSegmentedColormap.from_list('custom', ['#ffffff', color], N=256)
+        sns.heatmap(
+            cm_data, annot=True, fmt='d', cmap=cmap,
+            linewidths=0.5, linecolor='#cccccc',
+            xticklabels=['Pred 0', 'Pred 1'],
+            yticklabels=['True 0', 'True 1'],
+            ax=ax, cbar=False, annot_kws={'size': 14, 'weight': 'bold'},
+        )
+        ax.set_title(title, fontsize=11)
+        ax.set_xlabel('Predicted label')
+        ax.set_ylabel('True label')
+        ax.text(0.5, -0.32,
+                f'Accuracy={accuracy_score(y_true, preds):.3f}  '
+                f'F1={f1_score(y_true, preds, average="macro"):.3f}',
+                ha='center', transform=ax.transAxes, fontsize=9, color='#444444')
+    plt.tight_layout()
+    out = FIGURES_DIR / filename
+    fig.savefig(out)
+    plt.close()
+    print(f'Saved: {out}')
+
+_cm_figure(
+    y_ho,
+    [trad_ho_preds, deep_ho_preds],
+    ['Traditional\n(LogReg + SelectKBest k=10)', 'Deep Learning\n(MLP + SelectKBest k=12)'],
+    [BLUE, ORANGE],
+    f'Confusion Matrices — 20% Stratified Holdout (n={len(y_ho)}) — Part II v4',
+    'confusion_matrices.png',
+)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Figure 1b — Confusion Matrices (Full Training Set)
+# ══════════════════════════════════════════════════════════════════════════════
+_cm_figure(
+    y,
+    [trad_preds, deep_preds],
     ['Traditional\n(LogReg + SelectKBest k=10)', 'Deep Learning\n(MLP + SelectKBest k=12, ensemble)'],
     [BLUE, ORANGE],
-):
-    cmap = LinearSegmentedColormap.from_list('custom', ['#ffffff', color], N=256)
-    sns.heatmap(
-        cm_data, annot=True, fmt='d', cmap=cmap,
-        linewidths=0.5, linecolor='#cccccc',
-        xticklabels=['Pred 0', 'Pred 1'],
-        yticklabels=['True 0', 'True 1'],
-        ax=ax, cbar=False, annot_kws={'size': 14, 'weight': 'bold'},
-    )
-    ax.set_title(title, fontsize=11)
-    ax.set_xlabel('Predicted label')
-    ax.set_ylabel('True label')
-    tn, fp, fn, tp = cm_data.ravel()
-    ax.text(0.5, -0.25,
-            f'Accuracy={accuracy_score(y, trad_preds if title.startswith("T") else deep_preds):.3f}  '
-            f'F1={f1_score(y, trad_preds if title.startswith("T") else deep_preds, average="macro"):.3f}',
-            ha='center', transform=ax.transAxes, fontsize=9, color='#444444')
-
-plt.tight_layout()
-out = FIGURES_DIR / 'confusion_matrices.png'
-fig.savefig(out)
-plt.close()
-print(f'Saved: {out}')
+    f'Confusion Matrices — Full Training Set (n={len(y)}) — Part II v4',
+    'confusion_matrices_train.png',
+)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Figure 2 — ROC Curves
