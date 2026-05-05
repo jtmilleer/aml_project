@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.23)  5 MAY 2026 14:57
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.23)  5 MAY 2026 15:40
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -415,121 +415,110 @@ Package hyperref Info: Link coloring ON on input line 33.
 \tf@toc=\write4
 \openout4 = `report.toc'.
 
- [2] [3{c:/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] 
-[4] [5]
-<figures/p2_feature_scores.png, id=231, 541.3023pt x 350.14815pt>
-File: figures/p2_feature_scores.png Graphic file (type png)
-<use figures/p2_feature_scores.png>
-Package pdftex.def Info: figures/p2_feature_scores.png  used on input line 175.
-
-(pdftex.def)             Requested size: 469.75502pt x 303.87308pt.
+ [2] [3{c:/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
+<figures/p1_trad_cv_comparison.png, id=217, 652.5981pt x 336.7782pt>
+File: figures/p1_trad_cv_comparison.png Graphic file (type png)
+<use figures/p1_trad_cv_comparison.png>
+Package pdftex.def Info: figures/p1_trad_cv_comparison.png  used on input line 
+103.
+(pdftex.def)             Requested size: 469.75502pt x 242.41844pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[6]
-<figures/p2_traditional_model_CV.png, id=237, 1376.89406pt x 272.51813pt>
+[4] [5 <./figures/p1_trad_cv_comparison.png>] [6]
+<figures/p2_feature_scores.png, id=234, 541.3023pt x 350.14815pt>
+File: figures/p2_feature_scores.png Graphic file (type png)
+<use figures/p2_feature_scores.png>
+Package pdftex.def Info: figures/p2_feature_scores.png  used on input line 181.
+
+(pdftex.def)             Requested size: 469.75502pt x 303.87308pt.
+ [7 <./figures/p2_feature_scores.png>]
+<figures/p2_traditional_model_CV.png, id=242, 1376.89406pt x 272.51813pt>
 File: figures/p2_traditional_model_CV.png Graphic file (type png)
 <use figures/p2_traditional_model_CV.png>
 Package pdftex.def Info: figures/p2_traditional_model_CV.png  used on input lin
-e 191.
+e 197.
 (pdftex.def)             Requested size: 469.75502pt x 92.97511pt.
- [7 <./figures/p2_feature_scores.png> <./figures/p2_traditional_model_CV.png>]
-<figures/p2_deep_model_CV.png, id=247, 1295.59032pt x 237.13594pt>
+<figures/p2_deep_model_CV.png, id=243, 1295.59032pt x 237.13594pt>
 File: figures/p2_deep_model_CV.png Graphic file (type png)
 <use figures/p2_deep_model_CV.png>
-Package pdftex.def Info: figures/p2_deep_model_CV.png  used on input line 207.
+Package pdftex.def Info: figures/p2_deep_model_CV.png  used on input line 213.
 (pdftex.def)             Requested size: 469.75502pt x 85.98038pt.
-<figures/p2_trad_results.png, id=248, 1251.92719pt x 377.91188pt>
+ [8 <./figures/p2_traditional_model_CV.png> <./figures/p2_deep_model_CV.png>]
+<figures/p2_trad_results.png, id=252, 1251.92719pt x 377.91188pt>
 File: figures/p2_trad_results.png Graphic file (type png)
 <use figures/p2_trad_results.png>
-Package pdftex.def Info: figures/p2_trad_results.png  used on input line 228.
+Package pdftex.def Info: figures/p2_trad_results.png  used on input line 234.
 (pdftex.def)             Requested size: 469.75502pt x 141.8031pt.
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-<figures/p2_deep_results.png, id=249, 1236.11812pt x 354.57469pt>
+<figures/p2_deep_results.png, id=253, 1236.11812pt x 354.57469pt>
 File: figures/p2_deep_results.png Graphic file (type png)
 <use figures/p2_deep_results.png>
-Package pdftex.def Info: figures/p2_deep_results.png  used on input line 235.
+Package pdftex.def Info: figures/p2_deep_results.png  used on input line 241.
 (pdftex.def)             Requested size: 469.75502pt x 134.7452pt.
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-<figures/p2_confusion_matrices.png, id=250, 639.5895pt x 284.0211pt>
+<figures/p2_confusion_matrices.png, id=254, 639.5895pt x 284.0211pt>
 File: figures/p2_confusion_matrices.png Graphic file (type png)
 <use figures/p2_confusion_matrices.png>
 Package pdftex.def Info: figures/p2_confusion_matrices.png  used on input line 
-245.
+251.
 (pdftex.def)             Requested size: 469.75502pt x 208.60782pt.
+
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[8 <./figures/p2_deep_model_CV.png>]
-<figures/p2_cv_comparison.png, id=257, 424.2249pt x 311.4837pt>
+[9 <./figures/p2_trad_results.png> <./figures/p2_deep_results.png>]
+<figures/p2_cv_comparison.png, id=263, 424.2249pt x 311.4837pt>
 File: figures/p2_cv_comparison.png Graphic file (type png)
 <use figures/p2_cv_comparison.png>
-Package pdftex.def Info: figures/p2_cv_comparison.png  used on input line 266.
+Package pdftex.def Info: figures/p2_cv_comparison.png  used on input line 272.
 (pdftex.def)             Requested size: 469.75502pt x 344.9145pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-<figures/p2_pr_curves.png, id=258, 367.1316pt x 353.76164pt>
+<figures/p2_pr_curves.png, id=264, 367.1316pt x 353.76164pt>
 File: figures/p2_pr_curves.png Graphic file (type png)
 <use figures/p2_pr_curves.png>
-Package pdftex.def Info: figures/p2_pr_curves.png  used on input line 272.
+Package pdftex.def Info: figures/p2_pr_curves.png  used on input line 278.
 (pdftex.def)             Requested size: 469.75502pt x 452.65141pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-<figures/p2_roc_curves.png, id=259, 367.1316pt x 353.76164pt>
+<figures/p2_roc_curves.png, id=265, 367.1316pt x 353.76164pt>
 File: figures/p2_roc_curves.png Graphic file (type png)
 <use figures/p2_roc_curves.png>
-Package pdftex.def Info: figures/p2_roc_curves.png  used on input line 278.
+Package pdftex.def Info: figures/p2_roc_curves.png  used on input line 284.
 (pdftex.def)             Requested size: 469.75502pt x 452.65141pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[9 <./figures/p2_trad_results.png> <./figures/p2_deep_results.png>] [10 <./figu
-res/p2_confusion_matrices.png> <./figures/p2_cv_comparison.png>] [11 <./figures
-/p2_pr_curves.png>] [12 <./figures/p2_roc_curves.png>] (./report.aux)
+[10 <./figures/p2_confusion_matrices.png>] [11 <./figures/p2_cv_comparison.png>
+] [12 <./figures/p2_pr_curves.png>] [13 <./figures/p2_roc_curves.png>]
+(./report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
-
-
-Package rerunfilecheck Warning: File `report.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `report.out':
-(rerunfilecheck)             Before: CDB410A28AF9EEA2708CD57E740854A2;7198
-(rerunfilecheck)             After:  4B5A3C0C9515B1AD9EFE9BBCF7C1BE0C;6976.
+Package rerunfilecheck Info: File `report.out' has not changed.
+(rerunfilecheck)             Checksum: 4B5A3C0C9515B1AD9EFE9BBCF7C1BE0C;6976.
  ) 
 Here is how much of TeX's memory you used:
- 10712 strings out of 467533
- 164228 string characters out of 5423668
- 602972 words of memory out of 5000000
- 39444 multiletter control sequences out of 15000+600000
+ 10719 strings out of 467533
+ 164483 string characters out of 5423668
+ 601972 words of memory out of 5000000
+ 39450 multiletter control sequences out of 15000+600000
  634698 words of font info for 64 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,7n,79p,1195b,452s stack positions out of 10000i,1000n,20000p,200000b,200000s
-
-pdfTeX warning (dest): name{subsubsection.1.3.4} has been referenced but does n
-ot exist, replaced by a fixed one
-
-<c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texli
-ve/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2025/te
-xmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2025/texmf-dist/f
-onts/type1/public/amsfonts/cm/cmti12.pfb><c:/texlive/2025/texmf-dist/fonts/type
-1/public/cm-super/sfrm1200.pfb>
-Output written on report.pdf (12 pages, 582601 bytes).
+ 75i,7n,79p,1195b,454s stack positions out of 10000i,1000n,20000p,200000b,200000s
+<c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/tex
+live/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2025/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2025/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmti12.pfb><c:/texlive/2025/texmf-dist/fonts/ty
+pe1/public/cm-super/sfrm1200.pfb>
+Output written on report.pdf (13 pages, 613391 bytes).
 PDF statistics:
- 329 PDF objects out of 1000 (max. 8388607)
+ 332 PDF objects out of 1000 (max. 8388607)
  284 compressed objects within 3 object streams
- 62 named destinations out of 1000 (max. 500000)
- 366 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 63 named destinations out of 1000 (max. 500000)
+ 363 words of extra memory for PDF output out of 10000 (max. 10000000)
 
