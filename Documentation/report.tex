@@ -98,14 +98,20 @@ needed.}
 
 \subsection{Traditional Results}
 
-\textbf{Insert stat SS here}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{figures/p1_trad_cv_comparison.png}
+    \caption{F1 Macro and Accuracy of Top 5 Traditional Models}
+\end{figure}
 
-\ \ Based on the CV results (Figure 1), \textbf{MODEL NAME} was chosen as the best model for traditional machine learning. \textbf{MODEL NAME} had the best mean accuracy, as well as a high scoring macro F1 score.  
+\ \ Based on the CV results (Figure 1), Gradient Boosting + PCA was chosen as the best model for traditional machine learning. Gradient Boosting had the best mean accuracy, as well as the top F1 macro score. 
 
 \ \ After selecting \textbf{MODEL NAME} as the best model for the given data set, it was retrained on the whole dataset. The machine used to train it was my laptop. With an AMD Ryzen 7 running at 3.30 GHz, re-training the model took \textbf{AMOUNT OF SECONDS}. 
+
+\ \ While Gradient Boosting was chosen as the best model, SVM + PCA and LightGBM + PCA performed very similary. LightGBM was about three times quicker to train than Gradient Boosting, so if we had a ginormous data set, the time save may be worth it. But in this case, 13 seconds versus 39 seconds is not a big difference, so the very small performance gain in Gradient Boosting is worth it. 
 \subsubsection{Numerical metrics}
 
-\ \ Figure 1 shows a detailed report of all the models trained with 5-fold CV. \textbf{MODEL NAME} performed the best with a mean accuracy score of \textbf{SCORE}, it had a macro F1 score of \textbf{SCORE}. \textbf{Talk about second model and worst model?}
+\ \ Figure 1 shows a detailed report of all the models trained with 5-fold CV. Graident Boosting + PCA performed the best with a mean accuracy score of 0.759, it had a macro F1 score of 0.758. Both SVM + PCA and LightGBM + PCA had an accuracy score of 0.756 and a F1 macro score of 0.757. While it cannot be seen in Figure 1, \textbf{MODEL NAME} performed the worst with a mean accuracy score of \textbf{SCORE} and an F1 score of \textbf{SCORE}
 
 \subsubsection{Confusion matrix}
 
