@@ -16,6 +16,13 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
+from matplotlib.colors import LinearSegmentedColormap
+
 # ── Paths ──────────────────────────────────────────────────────────────────────
 TRAIN_DATA_PATH = 'part1/PartI_dev.csv'
 TEST_DATA_PATH  = 'part1/PartI_dev.csv'   # Replace this path for testing
@@ -136,6 +143,7 @@ if __name__ == "__main__":
         oof_preds = np.zeros(len(y), dtype=int)
 
         print(f'\nRunning 5-fold cross-validation ({EPOCHS} epochs / fold)...')
+        cv_start_time = time.time()
         for fold, (tr_idx, val_idx) in enumerate(kf.split(X, y)):
             X_tr, X_val = X[tr_idx], X[val_idx]
             y_tr, y_val = y[tr_idx], y[val_idx]
@@ -166,13 +174,49 @@ if __name__ == "__main__":
             cv_f1s.append(f1)
             print(f'  Fold {fold+1}: Accuracy={acc:.4f}  F1(macro)={f1:.4f}')
 
-        print(f'\nCV Accuracy   : {np.mean(cv_accs):.4f} ± {np.std(cv_accs):.4f}')
-        print(f'CV F1 (macro) : {np.mean(cv_f1s):.4f} ± {np.std(cv_f1s):.4f}')
+        cv_time = time.time() - cv_start_time
+
+        acc_mean = np.mean(cv_accs) * 100
+        acc_std = np.std(cv_accs) * 100
+        f1_mean = np.mean(cv_f1s)
+        f1_std = np.std(cv_f1s)
+
+        print()
+        def fmt_col(val, width):
+            return f"{val:^{width}}"
+
+        header = f"| {fmt_col('Model', 25)} | {fmt_col('CV Accuracy', 19)} | {fmt_col('CV F1 (macro)', 17)} | {fmt_col('CV Time', 11)} |"
+        sep = f"|{'-'*27}|{'-'*21}|{'-'*19}|{'-'*13}|"
+        print(header)
+        print(sep)
+        
+        name = "**MLP (Deep Learning)**"
+        acc_str = f"**{acc_mean:.2f}% ± {acc_std:.2f}%**"
+        f1_str = f"**{f1_mean:.3f} ± {f1_std:.3f}**"
+        time_str = f"**{cv_time:.2f}s**"
+        
+        print(f"| {fmt_col(name, 25)} | {fmt_col(acc_str, 19)} | {fmt_col(f1_str, 17)} | {fmt_col(time_str, 11)} |")
 
         print('\nOut-of-fold Overall Performance:')
         report_metrics(label_encoder.inverse_transform(y), 
                        label_encoder.inverse_transform(oof_preds), 
                        'Out-of-fold Metrics')
+
+        # ------------------------------------------------------------------
+        # Plot Confusion Matrix (OOF)
+        # ------------------------------------------------------------------
+        FIGURES_DIR = Path('Documentation/figures')
+        FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+        cm = confusion_matrix(y, oof_preds)
+        fig, ax = plt.subplots(figsize=(7, 6))
+        cmap = LinearSegmentedColormap.from_list('custom', ['#ffffff', '#E8632A'], N=256)
+        sns.heatmap(cm, annot=True, fmt='d', cmap=cmap, linewidths=0.5, linecolor='#cccccc', ax=ax, cbar=False, annot_kws={'size': 9}, xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
+        ax.set_title('Deep Learning Model (MLP)\nConfusion Matrix (Out-Of-Fold CV)', fontsize=12, fontweight='bold')
+        ax.set_xlabel('Predicted label')
+        ax.set_ylabel('True label')
+        out = FIGURES_DIR / 'p1_deep_confusion_matrix.png'
+        fig.savefig(out, bbox_inches='tight')
+        plt.close()
 
         # ── Final model on full development set ───────────────────────────────────
         print(f'\nTraining final model on full dev set ({EPOCHS} epochs)...')
