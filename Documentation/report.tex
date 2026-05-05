@@ -162,7 +162,7 @@ needed.}
 
 \subsection{Data Overview}
 
-\subsubsection{File size, class balance, scale of features}
+\subsubsection{File Size, Class Balance, Scale of Features}
 
 \ \ The PartII\_dev.csv file contains 125 features. Each feature has 158 numerical samples, with 126 belonging to class 0 and 32 belonging to class 1. This represents a 4:1 class imbalance. The features have widely ranging scales and many feature pairs are correlated (|r|>0.90). There are no missing values.
 
@@ -170,19 +170,25 @@ needed.}
 \subsection{Design Decisions}
 \ \ The massive redundancy in features and very small sample size were the main constraints for this part of the project. Four iterations were tested with the final being the selected iteration of the models. Resampling and minority class synthesis techniques were experimented with, but with the dataset being so small they did not prove to be useful. The dataset being so small also caused consistent overfitting issues, meaning design decisions had to be carefully selected to minimize overfitting.
 
-\subsubsection{Pipeline elements (Traditional Method)}
+\subsubsection{Pipeline Elements (Traditional Method)}
  
 \ \ StandardScalar was used in all versions of the traditional ML solution. StandardScalar normalizes the data to zero-mean and unit-variance, which was necessary due to the variety of scale in the dataset.
 
 \ \ For dimensionality reduction, initially PCA (Principal Component Analysis) was selected. PCA discards all features except for the ones that account for 95\% of the variance (in this case, all but 11 features). However, those high-variance features were not actually the most \underline{predictive} features. Instead, SelectKBest was used. SelectKBest runs an ANOVA F-test on each feature independently against Y. The 10 most statistically discriminative features were kept and the rest were discarded.
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/p2_feature_scores}
+  \caption{Comparison of features selected using SelectKBest for both Part II models}
+\end{figure}
+
 \ \ In earlier versions, SMOTE was used to generate synthetic minority-class samples. However, it did not show significant improvements in performance. LogReg can be set to class\_weight(balanced) to adjust for the unbalanced classes instead.
 
-\subsubsection{Pipeline elements (Deep Learning Method)}
+\subsubsection{Pipeline Elements (Deep Learning Method)}
 
 \ \ SelectKBest and StandardScalar are again used for the deep learning model. Like the traditional method, SMOTE was originally used. Not only did it not improve performance, it seemed to actively degrade it. In the final version there is no minority class synthesis.
 
-\subsubsection{Model selection (Traditional)}
+\subsubsection{Model Selection (Traditional)}
 
 \ \ To select a model, StratifiedKFold cross validation (specdifically RepeatedStratifiedKFold) with 5 splits repeated 5 times was used to compare models. CV F1, CV AUC-ROC, and threshold were compared between LogReg with SelectKBest(k=10), LogReg with SelectKBest(k=7), SVM using RBF kernel and SelectKBest(k=8), and LogReg with PCA. 
 
@@ -194,7 +200,7 @@ needed.}
  
 \ \ Based on the CV results, LogReg with SelectKBest(k=10) was selected as the traditional learning method.
 
-\subsubsection{Model selection (Deep Learning)}
+\subsubsection{Model Selection (Deep Learning)}
 
 \ \ MLP (Multi-Layer Perceptron) was, based on research, used for this dataset. MLP is a deep learning model well-suited for non-linear class boundaries. After experimenting with model size, it was determined to be best to use a smaller model. The original large model not only took too long to train, but was also not performant on the very small dataset.
 
@@ -212,13 +218,13 @@ needed.}
 
 \subsection{Results}
 
-\subsubsection{Development and training time}
+\subsubsection{Development and Training Time}
 
 \ \ The development time for the Part II solutions were significantly longer than for the Part I solutions. This is mostly due to the large amount of experimentation that was needed to find a model that performed well with the, frankly, pretty hard to use dataset. 
 
 \ \ The machine used to train the Part II models used an NVIDIA GeForce RTX 4060 Ti and was able to make use of CUDA acceleration. The training time for the final traditional model was 20.6 s. The training time for the final, smaller neural net was 268 s (5-seed ensemble).
 
-\subsubsection{Numerical metrics}
+\subsubsection{Numerical Metrics}
 
 \begin{itemize}
 
@@ -238,28 +244,52 @@ needed.}
 
 \end{itemize}
 
-\subsubsection{Confusion matrix}
+\subsubsection{Confusion Matrix}
 
-\placeholder{Talk about confusion matrix}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/p2_confusion_matrices}
+  \caption{Confusion matrices for Part II}
+\end{figure}
 
 \subsubsection{Analysis}
 
-\placeholder{analysis}
+\ \ 
 
-\subsubsection{Predicted results on test set}
+\subsubsection{Predicted Results on Test Set}
 
 \placeholder{Talk about predicted results on test set}
 
 
 \subsection{Conclusion}
 
-\subsubsection{Model comparison}
+\subsubsection{Model Comparison}
 
-\placeholder{Compare two models}
+\ \ The following figures were generated based on the results testing ona reserved development portion of the dataset of both Part II models:
 
-\subsubsection{Lessons learned}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/p2_cv_comparison}
+  \caption{Comparison of CV results for macro F1 and AUC-ROC for Part II models}
+\end{figure}
 
-\placeholder{What have you learned?}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/p2_pr_curves}
+  \caption{Comparison of precision-recall results for both Part II models}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/p2_roc_curves}
+  \caption{Comparison of ROC curves for both Part II models}
+\end{figure}
+
+\subsubsection{Lessons Learned}
+
+\ \ This part of the project was an exercise in dealing with sub-optimal data. The low amount of samples made it very difficult to get performance out of the models. I also thought, based on what we learned in class, that synthetic minority class generation may help, but that's not a universal solution! 
+
+\ \ I chose to develop both models even though only one was required because I wanted more practice developing deep learning models. 
 
 
 % =============================================================================
