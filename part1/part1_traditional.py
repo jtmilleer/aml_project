@@ -33,9 +33,9 @@ from matplotlib.colors import LinearSegmentedColormap
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="threadpoolctl")
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
 
-TRAINING = True
+TRAINING = True # Set to False to load models and run on test set
 DEV_PATH = "part1/PartI_dev.csv"
-TEST_PATH = "part1/PartI_dev.csv"
+TEST_PATH = "part1/PartI_dev.csv" # Replace this path with the path to the test set
 
 # ---------------------------------------------------------------------------
 # Model constructors
@@ -342,7 +342,7 @@ if __name__ == "__main__":
 
     else:
         print("=" * 60)
-        print("  PART I — TRADITIONAL METHOD — INFERENCE")
+        print("  PART I — TRADITIONAL METHOD — TEST SET")
         print("=" * 60)
 
         # load test set
