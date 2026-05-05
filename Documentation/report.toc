@@ -24,7 +24,7 @@
 \contentsline {subsubsection}{\numberline {2.1.1}File size, class balance, scale of features}{5}{subsubsection.2.1.1}%
 \contentsline {subsection}{\numberline {2.2}Design Decisions}{5}{subsection.2.2}%
 \contentsline {subsubsection}{\numberline {2.2.1}Pipeline elements (Traditional Method)}{5}{subsubsection.2.2.1}%
-\contentsline {subsubsection}{\numberline {2.2.2}Pipeline elements (Deep Learning Method)}{5}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.2}Pipeline elements (Deep Learning Method)}{6}{subsubsection.2.2.2}%
 \contentsline {subsubsection}{\numberline {2.2.3}Model selection (Traditional)}{6}{subsubsection.2.2.3}%
 \contentsline {subsubsection}{\numberline {2.2.4}Model selection (Deep Learning)}{6}{subsubsection.2.2.4}%
 \contentsline {subsection}{\numberline {2.3}Results}{7}{subsection.2.3}%

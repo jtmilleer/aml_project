@@ -139,13 +139,13 @@
 
 
 \subsection{Design Decisions}
-\ \ The massive redundancy in features and very small sample size were the main constraints for this part of the project. Four iterations were tested with the final being the selected iteration of the models.
+\ \ The massive redundancy in features and very small sample size were the main constraints for this part of the project. Four iterations were tested with the final being the selected iteration of the models. Resampling and minority class synthesis techniques were experimented with, but with the dataset being so small they did not prove to be useful. The dataset being so small also caused consistent overfitting issues, meaning design decisions had to be carefully selected to minimize overfitting.
 
 \subsubsection{Pipeline elements (Traditional Method)}
  
 \ \ StandardScalar was used in all versions of the traditional ML solution. StandardScalar normalizes the data to zero-mean and unit-variance, which was necessary due to the variety of scale in the dataset.
 
-\ \ For dimensionality reduction, initially PCA was selected. PCA discards all features except for the ones that account for 95\% of the variance (in this case, all but 11 features). However, those high-variance features were not actually the most \underline{predictive} features. Instead, SelectKBest was used. SelectKBest runs an ANOVA F-test on each feature independently against Y. The 10 most statistically discriminative features were kept and the rest were discarded.
+\ \ For dimensionality reduction, initially PCA (Principal Component Analysis) was selected. PCA discards all features except for the ones that account for 95\% of the variance (in this case, all but 11 features). However, those high-variance features were not actually the most \underline{predictive} features. Instead, SelectKBest was used. SelectKBest runs an ANOVA F-test on each feature independently against Y. The 10 most statistically discriminative features were kept and the rest were discarded.
 
 \ \ In earlier versions, SMOTE was used to generate synthetic minority-class samples. However, it did not show significant improvements in performance. LogReg can be set to class\_weight(balanced) to adjust for the unbalanced classes instead.
 
@@ -185,7 +185,9 @@
 
 \subsubsection{Development and training time}
 
-\placeholder{Talk about dev and training time}
+\ \ The development time for the Part II solutions were significantly longer than for the Part I solutions. This is mostly due to the large amount of experimentation that was needed to find a model that performed well with the, frankly, pretty hard to use dataset. 
+
+\ \ The machine used to train the Part II models used an NVIDIA GeForce RTX 4060 Ti and was able to make use of CUDA acceleration. The training time for the final traditional model was 20.6 s. The training time for the final, smaller neural net was 268 s (5-seed ensemble).
 
 \subsubsection{Numerical metrics}
 
