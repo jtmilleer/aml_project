@@ -2,7 +2,6 @@
 Part I - Deep Learning Method
 """
 
-TRAINING = True  # Set to False for testing/inference
 
 import time
 import numpy as np
@@ -24,6 +23,7 @@ from pathlib import Path
 from matplotlib.colors import LinearSegmentedColormap
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
+TRAINING = True  # Set to False for testing
 TRAIN_DATA_PATH = 'part1/PartI_dev.csv'
 TEST_DATA_PATH  = 'part1/PartI_dev.csv'   # Replace this path for testing
 MODEL_PATH      = 'part1/part1_deep_model.pth'
@@ -287,7 +287,7 @@ if __name__ == "__main__":
     # ── Inference Branch ───────────────────────────────────────────────────────────
     else:
         print('=' * 60)
-        print('  PART I — DEEP LEARNING — INFERENCE')
+        print('  PART I — DEEP LEARNING — TEST SET')
         print('=' * 60)
         print(f'  Device: {device}')
 
