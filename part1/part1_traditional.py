@@ -87,7 +87,7 @@ def build_knn(scale=True):
     steps.append(("knn", KNeighborsClassifier(weights="distance")))
     pipeline = Pipeline(steps)
     param_grid = {"knn__n_neighbors": [k for k in range(1, 51) if k % 2 == 1]}
-    return RandomizedSearchCV(pipeline, param_grid, n_iter=5, cv=3, n_jobs=-1, scoring="accuracy", random_state=42)
+    return GridSearchCV(pipeline, param_grid, cv=3, n_jobs=-1, scoring="accuracy")
 
 
 def build_svm(scale=True):
@@ -98,10 +98,8 @@ def build_svm(scale=True):
 
 def build_lightgbm(scale=True):
     steps = [("scaler", StandardScaler())] if scale else []
-    steps.append(("lgbm", LGBMClassifier(random_state=42, verbose=-1)))
-    pipeline = Pipeline(steps)
-    param_grid = {"lgbm__n_estimators": [100, 300, 500], "lgbm__learning_rate": [0.01, 0.1, 1]}
-    return GridSearchCV(pipeline, param_grid, cv=3, n_jobs=-1, scoring="accuracy")
+    steps.append(("lgbm", LGBMClassifier(n_estimators=100, learning_rate=0.1, random_state=42, verbose=-1)))
+    return Pipeline(steps)
 
 
 
@@ -332,8 +330,11 @@ if __name__ == "__main__":
         # Section 3: Final model training & save
         # ------------------------------------------------------------------
         print(f"Retraining best model ({best_model_name}) on full development set...")
+        start_time = time.time()
         best_model = all_builders[best_model_name]()
         best_model.fit(X, Y)
+        retrain_time = time.time() - start_time
+        print(f"Retraining completed in {retrain_time:.2f} seconds!")
         
         # save classifier/parameters
         joblib.dump(best_model, "part1/part1_traditional_model.pkl")
