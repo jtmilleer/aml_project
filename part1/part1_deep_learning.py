@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
 
 import matplotlib
@@ -136,17 +136,20 @@ if __name__ == "__main__":
         print(f'Num classes : {num_classes}')
         print(f'Class counts: {dict(zip(*np.unique(y, return_counts=True)))}')
 
+        # ── 80/20 Train/Test Split ────────────────────────────────────────────────
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, stratify=y, random_state=42
+        )
+
         # ── 5-fold CV for development metrics ─────────────────────────────────────
         kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         cv_accs, cv_f1s = [], []
-        
-        oof_preds = np.zeros(len(y), dtype=int)
 
         print(f'\nRunning 5-fold cross-validation ({EPOCHS} epochs / fold)...')
         cv_start_time = time.time()
-        for fold, (tr_idx, val_idx) in enumerate(kf.split(X, y)):
-            X_tr, X_val = X[tr_idx], X[val_idx]
-            y_tr, y_val = y[tr_idx], y[val_idx]
+        for fold, (tr_idx, val_idx) in enumerate(kf.split(X_train, y_train)):
+            X_tr, X_val = X_train[tr_idx], X_train[val_idx]
+            y_tr, y_val = y_train[tr_idx], y_train[val_idx]
 
             # Fit scaler on training fold only
             scaler = StandardScaler()
@@ -166,7 +169,6 @@ if __name__ == "__main__":
                 scheduler.step()
 
             preds = get_preds(model, X_val_s)
-            oof_preds[val_idx] = preds
 
             acc = accuracy_score(y_val, preds)
             f1  = f1_score(y_val, preds, average='macro')
@@ -197,21 +199,39 @@ if __name__ == "__main__":
         
         print(f"| {fmt_col(name, 25)} | {fmt_col(acc_str, 19)} | {fmt_col(f1_str, 17)} | {fmt_col(time_str, 11)} |")
 
-        print('\nOut-of-fold Overall Performance:')
-        report_metrics(label_encoder.inverse_transform(y), 
-                       label_encoder.inverse_transform(oof_preds), 
-                       'Out-of-fold Metrics')
+        # ── Train best model on 80% to evaluate on 20% hold-out ───────────────────
+        print('\nTraining model on 80% split to evaluate on 20% hold-out test set...')
+        holdout_scaler = StandardScaler()
+        X_train_s = holdout_scaler.fit_transform(X_train)
+        X_test_s  = holdout_scaler.transform(X_test)
+        
+        holdout_loader = make_loader(X_train_s, y_train, BATCH_SIZE)
+        holdout_model  = build_model(X_train_s.shape[1], num_classes)
+        optimizer  = optim.Adam(holdout_model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+        criterion  = nn.CrossEntropyLoss()
+        scheduler  = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
+        
+        for epoch in range(EPOCHS):
+            train_epoch(holdout_model, holdout_loader, optimizer, criterion)
+            scheduler.step()
+
+        test_preds = get_preds(holdout_model, X_test_s)
+        
+        print('\n20% Hold-out Test Set Performance:')
+        report_metrics(label_encoder.inverse_transform(y_test), 
+                       label_encoder.inverse_transform(test_preds), 
+                       'Hold-out Metrics')
 
         # ------------------------------------------------------------------
-        # Plot Confusion Matrix (OOF)
+        # Plot Confusion Matrix (20% Hold-out)
         # ------------------------------------------------------------------
         FIGURES_DIR = Path('Documentation/figures')
         FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-        cm = confusion_matrix(y, oof_preds)
+        cm = confusion_matrix(y_test, test_preds)
         fig, ax = plt.subplots(figsize=(7, 6))
         cmap = LinearSegmentedColormap.from_list('custom', ['#ffffff', '#E8632A'], N=256)
         sns.heatmap(cm, annot=True, fmt='d', cmap=cmap, linewidths=0.5, linecolor='#cccccc', ax=ax, cbar=False, annot_kws={'size': 9}, xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
-        ax.set_title('Deep Learning Model (MLP)\nConfusion Matrix (Out-Of-Fold CV)', fontsize=12, fontweight='bold')
+        ax.set_title('Deep Learning Model (MLP)\nConfusion Matrix (20% Hold-out Set)', fontsize=12, fontweight='bold')
         ax.set_xlabel('Predicted label')
         ax.set_ylabel('True label')
         out = FIGURES_DIR / 'p1_deep_confusion_matrix.png'
@@ -220,6 +240,7 @@ if __name__ == "__main__":
 
         # ── Final model on full development set ───────────────────────────────────
         print(f'\nTraining final model on full dev set ({EPOCHS} epochs)...')
+        start_time = time.time()
         final_scaler = StandardScaler()
         X_s = final_scaler.fit_transform(X)
 
@@ -236,6 +257,9 @@ if __name__ == "__main__":
             scheduler.step()
             if (epoch + 1) % 50 == 0:
                 print(f'  Epoch {epoch+1:>4}/{EPOCHS}')
+
+        retrain_time = time.time() - start_time
+        print(f"Retraining completed in {retrain_time:.2f} seconds!")
 
         # Training performance
         preds_tr = get_preds(final_model, X_s)
