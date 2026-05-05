@@ -49,18 +49,33 @@
 
 \subsubsection{File size, class balance, scale of features}
 
-\placeholder{File size, class balance, scale of features}
+\ \ The PartI\_dev.csv file contains 48 features. The dataset comprises 46,805 numerical samples evenly distributed across 11 distinct classes, with exactly 4,255 samples per class. This represents a perfectly balanced dataset, eliminating the need for class weighting or synthetic oversampling. There are no missing values.
 
 
 \subsection{Design Decisions}
+\ \ The large number of samples and perfectly balanced classes allowed for a straightforward evaluation of various models without the need for complex resampling techniques.
 
-\subsubsection{Pipeline elements}
+\subsubsection{Pipeline elements (Traditional Method)}
 
-\placeholder{Talk about why you picked the elements of the pipeline you used}
+\ \ StandardScaler was utilized to normalize the features to zero-mean and unit-variance. Normalization ensures that models sensitive to feature scale, such as K-Nearest Neighbors and Logistic Regression, perform optimally.
 
-\subsubsection{Model selection}
+\ \ For dimensionality reduction, Principal Component Analysis (PCA) was evaluated. A variance threshold of 95\% was applied to reduce the dimensionality of the feature space. Both the original raw features and the PCA-transformed features were tested to determine the most predictive input space.
 
-\placeholder{Talk about what models picked and why}
+\subsubsection{Pipeline elements (Deep Learning Method)}
+
+\ \ Similar to the traditional approach, StandardScaler was used to normalize the raw features. Since the dataset is perfectly balanced, techniques like SMOTE or class-weighted loss functions were unnecessary. The deep learning model was trained directly on the normalized raw features.
+
+\subsubsection{Model selection (Traditional)}
+
+\ \ A variety of traditional machine learning models were benchmarked, including Logistic Regression, Random Forest, Gradient Boosting, K-Nearest Neighbors (KNN), Linear Discriminant Analysis (LDA), and Quadratic Discriminant Analysis (QDA). Additionally, a soft-voting ensemble combining Random Forest, Gradient Boosting, and LDA was evaluated. 
+
+\ \ To ensure robust performance estimates, StratifiedKFold cross-validation with 5 splits was used to compare the models on the raw features. The models were evaluated primarily on classification accuracy and macro F1-score.
+
+\subsubsection{Model selection (Deep Learning)}
+
+\ \ A Multi-Layer Perceptron was selected for the deep learning approach. The network architecture consists of two hidden layers with 128 and 64 neurons, respectively. BatchNorm was included after each linear layer to normalize activations and stabilize training. ReLU was utilized as the activation function, along with Dropout(0.3) to prevent overfitting. 
+
+\ \ The model was compiled using CrossEntropyLoss, and optimized using Adam with a weight decay of 1e-4. Model performance was validated using 5-fold StratifiedKFold cross-validation.
 
 
 \subsection{Traditional Results}

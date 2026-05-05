@@ -1,0 +1,247 @@
+"""
+Part I - Deep Learning Method
+"""
+
+TRAINING = True  # Set to False for testing/inference
+
+import time
+import numpy as np
+import pandas as pd
+import joblib
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+
+# ── Paths ──────────────────────────────────────────────────────────────────────
+TRAIN_DATA_PATH = 'part1/PartI_dev.csv'
+TEST_DATA_PATH  = 'part1/PartI_dev.csv'   # Replace this path for testing
+MODEL_PATH      = 'part1/part1_deep_model.pth'
+PREPROC_PATH    = 'part1/part1_deep_preproc.joblib'   # scaler + label_encoder
+
+FEATURE_COLS = [f'X{i}' for i in range(1, 49)]
+TARGET_COL   = 'Y'
+
+# ── Hyperparameters ────────────────────────────────────────────────────────────
+HIDDEN_DIMS  = [128, 64]
+DROPOUT_RATE = 0.3
+LR           = 1e-3
+WEIGHT_DECAY = 1e-4
+EPOCHS       = 200
+BATCH_SIZE   = 64
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
+# ── Model ──────────────────────────────────────────────────────────────────────
+class MLP(nn.Module):
+    def __init__(self, input_dim, hidden_dims, num_classes, dropout):
+        super().__init__()
+        layers, prev = [], input_dim
+        for h in hidden_dims:
+            layers += [
+                nn.Linear(prev, h),
+                nn.BatchNorm1d(h),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+            ]
+            prev = h
+        layers.append(nn.Linear(prev, num_classes))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.net(x)
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+def load_data(path):
+    df = pd.read_csv(path)
+    X = df[FEATURE_COLS].values.astype(np.float32)
+    y = df[TARGET_COL].values
+    return X, y
+
+
+def report_metrics(y_true, y_pred, label=''):
+    print(f'\n{"─"*50}')
+    print(f'  {label}')
+    print(f'{"─"*50}')
+    print(f'  Accuracy       : {accuracy_score(y_true, y_pred):.4f}')
+    print(f'  F1 (macro)     : {f1_score(y_true, y_pred, average="macro"):.4f}')
+    print()
+    print(classification_report(y_true, y_pred, digits=4))
+    print('  Confusion Matrix (rows=true, cols=pred):')
+    print(confusion_matrix(y_true, y_pred))
+
+
+def make_loader(X_np, y_np, batch_size, shuffle=True):
+    ds = TensorDataset(
+        torch.tensor(X_np, dtype=torch.float32),
+        torch.tensor(y_np, dtype=torch.long),
+    )
+    return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, drop_last=False)
+
+
+def train_epoch(model, loader, optimizer, criterion):
+    model.train()
+    total_loss = 0.0
+    for Xb, yb in loader:
+        Xb, yb = Xb.to(device), yb.to(device)
+        optimizer.zero_grad()
+        loss = criterion(model(Xb), yb)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * len(yb)
+    return total_loss
+
+
+@torch.no_grad()
+def get_preds(model, X_np):
+    model.eval()
+    X_t = torch.tensor(X_np, dtype=torch.float32).to(device)
+    logits = model(X_t)
+    return torch.argmax(logits, dim=1).cpu().numpy()
+
+
+def build_model(input_dim, num_classes):
+    return MLP(input_dim, HIDDEN_DIMS, num_classes, DROPOUT_RATE).to(device)
+
+
+# ── Training Branch ────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    if TRAINING:
+        print('=' * 60)
+        print('  PART I — DEEP LEARNING — TRAINING')
+        print('=' * 60)
+        print(f'  Device: {device}')
+        t_start = time.time()
+
+        X, y_raw = load_data(TRAIN_DATA_PATH)
+        
+        # Encode labels to 0, 1, ..., num_classes-1
+        label_encoder = LabelEncoder()
+        y = label_encoder.fit_transform(y_raw)
+        num_classes = len(label_encoder.classes_)
+        
+        print(f'\nData loaded : {X.shape}')
+        print(f'Num classes : {num_classes}')
+        print(f'Class counts: {dict(zip(*np.unique(y, return_counts=True)))}')
+
+        # ── 5-fold CV for development metrics ─────────────────────────────────────
+        kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        cv_accs, cv_f1s = [], []
+        
+        oof_preds = np.zeros(len(y), dtype=int)
+
+        print(f'\nRunning 5-fold cross-validation ({EPOCHS} epochs / fold)...')
+        for fold, (tr_idx, val_idx) in enumerate(kf.split(X, y)):
+            X_tr, X_val = X[tr_idx], X[val_idx]
+            y_tr, y_val = y[tr_idx], y[val_idx]
+
+            # Fit scaler on training fold only
+            scaler = StandardScaler()
+            X_tr_s = scaler.fit_transform(X_tr)
+            X_val_s = scaler.transform(X_val)
+
+            loader = make_loader(X_tr_s, y_tr, BATCH_SIZE)
+
+            model = build_model(X_tr_s.shape[1], num_classes)
+            optimizer  = optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+            criterion  = nn.CrossEntropyLoss()
+            scheduler  = optim.lr_scheduler.CosineAnnealingLR(
+                             optimizer, T_max=EPOCHS, eta_min=1e-6)
+
+            for _ in range(EPOCHS):
+                train_epoch(model, loader, optimizer, criterion)
+                scheduler.step()
+
+            preds = get_preds(model, X_val_s)
+            oof_preds[val_idx] = preds
+
+            acc = accuracy_score(y_val, preds)
+            f1  = f1_score(y_val, preds, average='macro')
+            cv_accs.append(acc)
+            cv_f1s.append(f1)
+            print(f'  Fold {fold+1}: Accuracy={acc:.4f}  F1(macro)={f1:.4f}')
+
+        print(f'\nCV Accuracy   : {np.mean(cv_accs):.4f} ± {np.std(cv_accs):.4f}')
+        print(f'CV F1 (macro) : {np.mean(cv_f1s):.4f} ± {np.std(cv_f1s):.4f}')
+
+        print('\nOut-of-fold Overall Performance:')
+        report_metrics(label_encoder.inverse_transform(y), 
+                       label_encoder.inverse_transform(oof_preds), 
+                       'Out-of-fold Metrics')
+
+        # ── Final model on full development set ───────────────────────────────────
+        print(f'\nTraining final model on full dev set ({EPOCHS} epochs)...')
+        final_scaler = StandardScaler()
+        X_s = final_scaler.fit_transform(X)
+
+        final_loader = make_loader(X_s, y, BATCH_SIZE)
+
+        final_model = build_model(X_s.shape[1], num_classes)
+        optimizer  = optim.Adam(final_model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+        criterion  = nn.CrossEntropyLoss()
+        scheduler  = optim.lr_scheduler.CosineAnnealingLR(
+                         optimizer, T_max=EPOCHS, eta_min=1e-6)
+
+        for epoch in range(EPOCHS):
+            train_epoch(final_model, final_loader, optimizer, criterion)
+            scheduler.step()
+            if (epoch + 1) % 50 == 0:
+                print(f'  Epoch {epoch+1:>4}/{EPOCHS}')
+
+        # Training performance
+        preds_tr = get_preds(final_model, X_s)
+        report_metrics(label_encoder.inverse_transform(y), 
+                       label_encoder.inverse_transform(preds_tr),
+                       'Training Performance (Full Dev Set)')
+
+        # Save model weights + preprocessing artifacts
+        torch.save({
+            'model_state': final_model.state_dict(),
+            'input_dim':   X_s.shape[1],
+            'num_classes': num_classes,
+        }, MODEL_PATH)
+        
+        joblib.dump({
+            'scaler':        final_scaler,
+            'label_encoder': label_encoder,
+        }, PREPROC_PATH)
+
+        print(f'\nModel saved to  : {MODEL_PATH}')
+        print(f'Preproc saved to: {PREPROC_PATH}')
+        print(f'Total time      : {time.time() - t_start:.1f}s')
+
+
+    # ── Inference Branch ───────────────────────────────────────────────────────────
+    else:
+        print('=' * 60)
+        print('  PART I — DEEP LEARNING — INFERENCE')
+        print('=' * 60)
+        print(f'  Device: {device}')
+
+        X, y_raw = load_data(TEST_DATA_PATH)
+        print(f'\nData loaded : {X.shape}')
+
+        # Load preprocessing + model
+        preproc       = joblib.load(PREPROC_PATH)
+        scaler        = preproc['scaler']
+        label_encoder = preproc['label_encoder']
+
+        y = label_encoder.transform(y_raw)
+        print(f'Class counts: {dict(zip(*np.unique(y, return_counts=True)))}')
+
+        X_s = scaler.transform(X)
+
+        ckpt  = torch.load(MODEL_PATH, map_location=device)
+        model = build_model(ckpt['input_dim'], ckpt['num_classes'])
+        model.load_state_dict(ckpt['model_state'])
+
+        preds = get_preds(model, X_s)
+        
+        report_metrics(label_encoder.inverse_transform(y), 
+                       label_encoder.inverse_transform(preds), 
+                       'Test Set Performance')
