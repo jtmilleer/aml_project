@@ -63,7 +63,7 @@ needed.}
 
 \subsubsection{File size, class balance, scale of features}
 
-\ \ The PartI\_dev.csv file contains 48 features. The dataset comprises 46,805 numerical samples evenly distributed across 11 distinct classes, with exactly 4,255 samples per class. This represents a perfectly balanced dataset, eliminating the need for class weighting or synthetic oversampling. There are no missing values.
+\ \ The PartI\_dev.csv file contains 48 features. The dataset comprises 46,805 numerical samples evenly distributed across 11 distinct classes, with exactly 4,255 samples per class. This represents a perfectly balanced dataset, eliminating the need for class weighting or resampling methods. There are no missing values.
 
 
 \subsection{Design Decisions}
@@ -73,7 +73,7 @@ needed.}
 
 \ \ StandardScaler was utilized to normalize the features to zero-mean and unit-variance. Normalization ensures that models sensitive to feature scale, such as K-Nearest Neighbors and Logistic Regression, perform optimally.
 
-\ \ For dimensionality reduction, Principal Component Analysis (PCA) was evaluated. A variance threshold of 95\% was applied to reduce the dimensionality of the feature space. Both the original raw features and the PCA-transformed features were tested to determine the most predictive input space.
+\ \ For dimensionality reduction, Principal Component Analysis (PCA) was evaluated. A variance threshold of 95\% was applied to reduce the dimensionality of the feature space. With PCA, the dimensionality was reduced from 48 predictors to 31 predictors. Both the original raw features and the PCA-transformed features were tested to determine the most predictive input space.
 
 \subsubsection{Pipeline elements (Deep Learning Method)}
 
@@ -81,9 +81,9 @@ needed.}
 
 \subsubsection{Model selection (Traditional)}
 
-\ \ A variety of traditional machine learning models were benchmarked, including Logistic Regression, Random Forest, Gradient Boosting, K-Nearest Neighbors (KNN), Linear Discriminant Analysis (LDA), and Quadratic Discriminant Analysis (QDA). Additionally, a soft-voting ensemble combining Random Forest, Gradient Boosting, and LDA was evaluated. 
+\ \ A variety of traditional machine learning models were benchmarked, including Logistic Regression, Random Forest, Gradient Boosting, K-Nearest Neighbors (KNN), Linear Discriminant Analysis (LDA), Quadratic Discriminant Analysis (QDA), and Support Vector Machine (SVM). Additionally, a soft-voting ensemble combining Random Forest, Gradient Boosting, and LDA was evaluated. 
 
-\ \ To ensure robust performance estimates, StratifiedKFold cross-validation with 5 splits was used to compare the models on the raw features. The models were evaluated primarily on classification accuracy and macro F1-score.
+\ \ To ensure robust performance estimates, StratifiedKFold cross-validation with 5 splits was used to compare the models on the raw features. The models were evaluated on the mean accuray score after 5 fold CV. Macro F1 score was also reported. Accuracy was chosen due to the perfectly balanced classes.
 
 \subsubsection{Model selection (Deep Learning)}
 
@@ -94,17 +94,18 @@ needed.}
 
 \subsection{Traditional Results}
 
-\subsubsection{Development and training time}
+\textbf{Insert stat SS here}
 
-\placeholder{Talk about dev and training time}
+\ \ Based on the CV results (Figure 1), \textbf{MODEL NAME} was chosen as the best model for traditional machine learning. Once the model and the appropriate hyper parameters were selected, the model was retrained on the full dataset in order to achieve higher performance. 
 
+\ \ After selecting \textbf{MODEL NAME} as the best model for the given data set, it was retrained on the whole dataset. The machine used to train it was my laptop. With an AMD Ryzen 7 running at 3.30 GHz, traing the model took \textbf{AMOUNT OF SECONDS}. 
 \subsubsection{Numerical metrics}
 
 \placeholder{Talk about numerical metrics (F1, roc auc, etc)}
 
 \subsubsection{Confusion matrix}
 
-\placeholder{Talk about confusion matrix}
+\ \ Figure 2 shows the confusion matrix on the 20\% of data left out for testing, before it was trained on the whole dataset. \textbf{talk about the frequence class misprediction}
 
 \subsubsection{Predicted results on test set}
 
@@ -138,7 +139,7 @@ needed.}
 
 \subsubsection{Model comparison}
 
-\placeholder{Compare two models}
+\ \ Deep learning performed slightly better ...
 
 \subsubsection{Lessons learned}
 
