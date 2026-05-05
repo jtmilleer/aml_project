@@ -45,9 +45,9 @@ The SelectKBest→LogReg pipeline outperforms PCA→LogReg by +0.076 F1. Selecti
 |         Metric        |    CV estimate    | Training (full dev set) |
 |-----------------------|-------------------|-------------------------|
 |        Accuracy       |         —         |          0.7848         |
-|       F1 (macro)      | **0.724 ± 0.066** |          0.6815         |
+|       F1 (macro)      |   0.724 ± 0.066   |          0.6815         |
 | F1 (minority class=1) |         —         |          0.5000         |
-|        AUC-ROC        |     **0.738**     |          0.7562         |
+|        AUC-ROC        |       0.738       |          0.7562         |
 |       Threshold       |       0.626       |            —            |
 |     Training time     |         —         |          20.6 s         |
 
