@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.23)  5 MAY 2026 12:49
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.23)  5 MAY 2026 13:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -415,47 +415,45 @@ Package hyperref Info: Link coloring ON on input line 33.
 \tf@toc=\write4
 \openout4 = `report.toc'.
 
- [2] [3] [4] [5]
-<figures/traditional_model_CV.png, id=210, 1376.89406pt x 272.51813pt>
+ [2] [3{c:/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] 
+[4] [5]
+<figures/traditional_model_CV.png, id=216, 1376.89406pt x 272.51813pt>
 File: figures/traditional_model_CV.png Graphic file (type png)
 <use figures/traditional_model_CV.png>
 Package pdftex.def Info: figures/traditional_model_CV.png  used on input line 1
-62.
+76.
 (pdftex.def)             Requested size: 469.75502pt x 92.97511pt.
-<figures/deep_model_CV.png, id=212, 1295.59032pt x 237.13594pt>
+ [6 <./figures/traditional_model_CV.png>]
+<figures/deep_model_CV.png, id=224, 1295.59032pt x 237.13594pt>
 File: figures/deep_model_CV.png Graphic file (type png)
 <use figures/deep_model_CV.png>
-Package pdftex.def Info: figures/deep_model_CV.png  used on input line 178.
+Package pdftex.def Info: figures/deep_model_CV.png  used on input line 192.
 (pdftex.def)             Requested size: 469.75502pt x 85.98038pt.
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-[6 <./figures/traditional_model_CV.png>] [7 <./figures/deep_model_CV.png>]
-(./report.aux)
+[7 <./figures/deep_model_CV.png>] [8] (./report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: D207E322BFA00FE07F257AF2AB9E78D6;6621.
+(rerunfilecheck)             Checksum: C3B5929999721B2466D0989E4F51EE45;6831.
  ) 
 Here is how much of TeX's memory you used:
- 10609 strings out of 467533
- 161252 string characters out of 5423668
- 600970 words of memory out of 5000000
- 39359 multiletter control sequences out of 15000+600000
- 634361 words of font info for 63 fonts, out of 8000000 for 9000
+ 10618 strings out of 467533
+ 161388 string characters out of 5423668
+ 601970 words of memory out of 5000000
+ 39364 multiletter control sequences out of 15000+600000
+ 634698 words of font info for 64 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,6n,79p,1195b,454s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,6n,79p,1195b,450s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/tex
 live/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2025/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><c:/texlive/2025/texmf-dist
-/fonts/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on report.pdf (7 pages, 161173 bytes).
+/fonts/type1/public/amsfonts/cm/cmti12.pfb><c:/texlive/2025/texmf-dist/fonts/ty
+pe1/public/cm-super/sfrm1200.pfb>
+Output written on report.pdf (8 pages, 170162 bytes).
 PDF statistics:
- 259 PDF objects out of 1000 (max. 8388607)
- 235 compressed objects within 3 object streams
- 46 named destinations out of 1000 (max. 500000)
- 299 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 274 PDF objects out of 1000 (max. 8388607)
+ 247 compressed objects within 3 object streams
+ 48 named destinations out of 1000 (max. 500000)
+ 307 words of extra memory for PDF output out of 10000 (max. 10000000)
 
