@@ -36,6 +36,7 @@ SEED         = 42
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def load_data(path):
+    """Load CSV from path and return feature matrix X (float32) and integer label vector y."""
     df = pd.read_csv(path)
     X = df[FEATURE_COLS].values.astype(np.float32)
     y = df[TARGET_COL].values.astype(int)
@@ -43,6 +44,7 @@ def load_data(path):
 
 
 def report_metrics(y_true, y_pred, y_prob=None, label=''):
+    """Print accuracy, macro/minority F1, AUC-ROC, classification report, and confusion matrix."""
     print(f'\n{"─"*52}')
     print(f'  {label}')
     print(f'{"─"*52}')
@@ -59,16 +61,19 @@ def report_metrics(y_true, y_pred, y_prob=None, label=''):
 
 def best_threshold(y_true, scores):
     """Per-fold threshold sweep — maximises F1 macro on the fold's validation set."""
-    candidates = np.linspace(0.05, 0.95, 181)
+    # Renamed from 'candidates' to 'thresholds' to avoid confusion with the
+    # outer pipeline dict also named 'candidates'.
+    thresholds = np.linspace(0.05, 0.95, 181)
     f1s = [f1_score(y_true, scores >= t, average='macro', zero_division=0)
-           for t in candidates]
-    return float(candidates[int(np.argmax(f1s))])
+           for t in thresholds]
+    return float(thresholds[int(np.argmax(f1s))])
 
 
 def positive_scores(model, X):
-    """Works for any sklearn classifier regardless of how it exposes probabilities."""
+    """Return class-1 probability scores for any sklearn classifier, regardless of API."""
     if hasattr(model, 'predict_proba'):
         return model.predict_proba(X)[:, 1]
+    # Fallback for models that only expose decision_function (e.g. linear SVM)
     raw = model.decision_function(X)
     return 1.0 / (1.0 + np.exp(-raw))
 
@@ -117,7 +122,7 @@ if TRAINING:
     print('\n── Phase 1: Model comparison (RepeatedStratifiedKFold 5×5) ──')
     print(f'  {"Model":38s}  F1-macro        AUC-ROC  Threshold')
 
-    candidates = {
+    pipelines = {
         'LogReg + SelectKBest(k=7)': make_pipeline(
             StandardScaler(),
             SelectKBest(f_classif, k=7),
@@ -145,7 +150,7 @@ if TRAINING:
     }
 
     results = {}
-    for name, pipe in candidates.items():
+    for name, pipe in pipelines.items():
         f1_mean, f1_std, auc_mean, thresh_mean = evaluate_model(pipe, X, y, cv)
         results[name] = (f1_mean, auc_mean, thresh_mean)
         print(f'  {name:38s}  {f1_mean:.4f} ± {f1_std:.4f}  {auc_mean:.4f}  {thresh_mean:.3f}')
@@ -157,7 +162,7 @@ if TRAINING:
 
     # ── Phase 2: Train final model on full development set ─────────────────────
     print('\n── Phase 2: Training final model on full dev set ──')
-    final_model = candidates[best_name]
+    final_model = pipelines[best_name]
     final_model.fit(X, y)
 
     # ── Phase 3: Report and Save ───────────────────────────────────────────────

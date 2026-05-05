@@ -51,6 +51,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # ── Model ──────────────────────────────────────────────────────────────────────
 class MLP(nn.Module):
     def __init__(self, input_dim, hidden, dropout):
+        """Build a fully-connected net: Linear→BN→ReLU→Dropout per hidden layer, then a scalar output."""
         super().__init__()
         layers, prev = [], input_dim
         for w in hidden:
@@ -60,11 +61,13 @@ class MLP(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
+        """Return raw logit (scalar per sample) — apply sigmoid externally for probabilities."""
         return self.net(x).squeeze(1)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def load_data(path):
+    """Load CSV from path and return feature matrix X (float32) and float32 label vector y for BCEWithLogitsLoss."""
     df = pd.read_csv(path)
     X = df[FEATURE_COLS].values.astype(np.float32)
     y = df[TARGET_COL].values.astype(np.float32)
@@ -72,6 +75,7 @@ def load_data(path):
 
 
 def report_metrics(y_true, y_pred, y_prob=None, label=''):
+    """Print accuracy, macro/minority F1, AUC-ROC, classification report, and confusion matrix."""
     print(f'\n{"─"*52}')
     print(f'  {label}')
     print(f'{"─"*52}')
@@ -88,6 +92,7 @@ def report_metrics(y_true, y_pred, y_prob=None, label=''):
 
 
 def make_loader(X_np, y_np, shuffle=True):
+    """Wrap numpy arrays in a DataLoader with configurable shuffling."""
     ds = TensorDataset(torch.tensor(X_np, dtype=torch.float32),
                        torch.tensor(y_np, dtype=torch.float32))
     return DataLoader(ds, batch_size=BATCH_SIZE, shuffle=shuffle, drop_last=False)
@@ -95,12 +100,14 @@ def make_loader(X_np, y_np, shuffle=True):
 
 @torch.no_grad()
 def get_probs(model, X_np):
+    """Run inference and return sigmoid probabilities as a numpy array."""
     model.eval()
     X_t = torch.tensor(X_np, dtype=torch.float32).to(device)
     return torch.sigmoid(model(X_t)).cpu().numpy()
 
 
 def best_threshold(y_true, probs):
+    """Sweep thresholds to find the one maximising F1-macro on this fold's labels."""
     candidates = np.linspace(0.05, 0.95, 181)
     f1s = [f1_score(y_true.astype(int), (probs >= t).astype(int),
                     average='macro', zero_division=0) for t in candidates]
@@ -108,6 +115,7 @@ def best_threshold(y_true, probs):
 
 
 def pos_weight_tensor(y_np):
+    """Compute BCEWithLogitsLoss pos_weight as neg/pos ratio to counteract class imbalance."""
     n_neg, n_pos = np.bincount(y_np.astype(int))
     return torch.tensor([n_neg / n_pos], dtype=torch.float32).to(device)
 
@@ -214,10 +222,6 @@ if TRAINING:
             fold_thresholds.append(best_info['threshold'])
             fold_epochs.append(best_info['epoch'])
             try:
-                probs = get_probs(
-                    MLP(X_tr_s.shape[1], cfg['hidden'], cfg['dropout']).to(device),
-                    X_val_s)
-                # re-use model from best_info state
                 m_tmp = MLP(X_tr_s.shape[1], cfg['hidden'], cfg['dropout']).to(device)
                 m_tmp.load_state_dict(best_info['state'])
                 fold_aucs.append(roc_auc_score(y_val.astype(int),
