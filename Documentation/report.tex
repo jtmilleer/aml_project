@@ -54,7 +54,6 @@ needed.}
 \end{itemize}
 
 \ \ LLM AI models were used for some portions of code development, specifically formatting, error checking, and creating result summary/plotting scripts. All final design decisions, including models and preprocessing used, as well as the report were made by Jordan and Sydney.
-
 % =============================================================================
 \section{Part I}
 % =============================================================================
@@ -106,20 +105,27 @@ needed.}
 
 \ \ Based on the CV results (Figure 1), Gradient Boosting + PCA was chosen as the best model for traditional machine learning. Gradient Boosting had the best mean accuracy, as well as the top F1 macro score. 
 
-\ \ After selecting \textbf{MODEL NAME} as the best model for the given data set, it was retrained on the whole dataset. The machine used to train it was my laptop. With an AMD Ryzen 7 running at 3.30 GHz, re-training the model took \textbf{AMOUNT OF SECONDS}. 
+\ \ After selecting Gradient Boosting + PCA as the best model for the given data set, it was retrained on the whole dataset. The machine used to train it was my laptop. With an AMD Ryzen 7 running at 3.30 GHz, re-training the model took 15.36 seconds. 
 
-\ \ While Gradient Boosting was chosen as the best model, SVM + PCA and LightGBM + PCA performed very similary. LightGBM was about three times quicker to train than Gradient Boosting, so if we had a ginormous data set, the time save may be worth it. But in this case, 13 seconds versus 39 seconds is not a big difference, so the very small performance gain in Gradient Boosting is worth it. 
+\ \ While Gradient Boosting was chosen as the best model, SVM + PCA and LightGBM + PCA performed very similary. LightGBM was about three times quicker to run 5-fold CV on than Gradient Boosting, so if we had a ginormous data set, the time save may be worth it. But in this case, 13 seconds versus 39 seconds is not a big difference, so the very small performance gain in Gradient Boosting is worth it. 
 \subsubsection{Numerical metrics}
 
-\ \ Figure 1 shows a detailed report of all the models trained with 5-fold CV. Graident Boosting + PCA performed the best with a mean accuracy score of 0.759, it had a macro F1 score of 0.758. Both SVM + PCA and LightGBM + PCA had an accuracy score of 0.756 and a F1 macro score of 0.757. While it cannot be seen in Figure 1, \textbf{MODEL NAME} performed the worst with a mean accuracy score of \textbf{SCORE} and an F1 score of \textbf{SCORE}
+\ \ Figure 1 shows a detailed report of all the models trained with 5-fold CV. Graident Boosting + PCA performed the best with a mean accuracy score of 0.759, it had a macro F1 score of 0.758. Both SVM + PCA and LightGBM + PCA had an accuracy score of 0.756 and a F1 macro score of 0.757. While it cannot be seen in Figure 1, Quadratic Discriminate Analysis performed the worst with a mean accuracy score of 0.635 and a mean F1 macro score of 0.605. 
 
 \subsubsection{Confusion matrix}
 
-\ \ Figure 2 shows the confusion matrix on the 20\% of data left out for testing, before it was trained on the whole dataset. \textbf{talk about the frequence class misprediction}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/p1_trad_confusion_matrix.png}
+    \caption{Confusion Matrix for GB + PCA on 20\% holdout set}
+    \label{fig:placeholder}
+\end{figure}
+
+\ \ Figure 2 shows the confusion matrix on the 20\% of data left out for testing, before it was trained on the whole dataset. There were a few common mis-classifications, with the most common being classifying class 10 as class 2. This mis-classification happened 199 times. 
 
 \subsubsection{Predicted results on test set}
 
-\placeholder{Talk about predicted results on test set}
+\ \ After the best model was selected via 5-fold CV, it was tested on the 20\% of data held out from the whole dataset. The model scored 0.76 for both F1 macro and accuracy. 
 
 
 \subsection{Deep Results}
