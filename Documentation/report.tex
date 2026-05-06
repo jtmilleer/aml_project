@@ -94,6 +94,7 @@ needed.}
 
 \ \ The model was compiled using CrossEntropyLoss, and optimized using Adam with a weight decay of 1e-4. Model performance was validated using 5-fold StratifiedKFold cross-validation.
 
+\pagebreak
 
 \subsection{Traditional Results}
 
@@ -115,7 +116,6 @@ needed.}
 
 \ \ After the best model was selected via 5-fold CV, it was tested on the 20\% of data held out from the whole dataset. The model scored 0.76 for both F1 macro and accuracy.
 
-\pagebreak
 
 \subsubsection{Confusion matrix}
 
@@ -280,16 +280,15 @@ needed.}
   \caption{Confusion matrices for both Part II models, not re-fit}
 \end{figure}
 
+\ \ Comparing the full models to the refitted models and the held-out 20\%, the accuracy and F1 scores are similar.  This indicates to me that the model does a good job of generalizing and is not overfitting to the training set too much. For all CMs, the traditional model and deep learning model share the same most common error (false class 1). This makes sense given the very small number of positive samples in the dataset.
 
-
-\subsubsection{Analysis}
-
-\ \ 
+\pagebreak
 
 \subsubsection{Predicted Results on Test Set}
 
-\placeholder{Talk about predicted results on test set}
+\ \ Based on the results of testing the models on the training set, I believe it will continue to perform well on the test set. What will influence it's performance going forward is mostly the class balance of the test set; if it's way different, there may be degradation in the F1 score. Due to the flexible nature of MLPs, I think there is potential for it to perform better on the test set than on the training data as well as better than the traditional model.
 
+\ \ One note is that while the F1 score for the deep learning model is slightly higher than the traditional model, the AUC-ROC is slightly lower. This could mean the deep learning model is highly optimized for the given threshold (~0.5) to balance precision and recall, but it ranks positive/negative examples poorly across all potential thresholds. This often suggests the model is good at making a firm classification decision but is less robust overall.
 
 \subsection{Conclusion}
 
@@ -303,17 +302,23 @@ needed.}
   \caption{Comparison of CV results for macro F1 and AUC-ROC for Part II models}
 \end{figure}
 
+\pagebreak
+
 \begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{figures/p2_pr_curves}
   \caption{Comparison of precision-recall results for both Part II models}
 \end{figure}
 
+\pagebreak
+
 \begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{figures/p2_roc_curves}
   \caption{Comparison of ROC curves for both Part II models}
 \end{figure}
+
+\ \ The deep learning model generally performed slightly better, showing a higher macro F1 score than the traditional model. However, it did have larger standard deviation, and its AUC-ROC score was slightly lower as mentioned in the section above. If the dataset had more samples, I think the deep learning model would have out-performed the traditional model in every aspect.
 
 \subsubsection{Lessons Learned}
 
